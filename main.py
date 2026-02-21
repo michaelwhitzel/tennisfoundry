@@ -7,8 +7,8 @@ from jinja2 import Environment, FileSystemLoader
 
 # 1. SETUP
 # Retrieve keys from GitHub Secrets
-RAPID_API_KEY = os.environ
-GEMINI_API_KEY = os.environ
+RAPID_API_KEY = os.environ.get("RAPID_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -32,7 +32,6 @@ def get_matches():
         data = response.json()
         
         # Simple data cleaning to get a list of readable matches
-        # Note: You may need to adjust parsing depending on the specific API you subscribe to
         matches =
         raw_matches = data.get('events',)[:10] # Limit to 10 matches to save AI credits
         
