@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Tennis AI</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        :root { --primary: #2c7be5; }
+       .match-card { padding: 20px; margin-bottom: 20px; border-radius: 8px; background: #1f2937; color: white; }
+       .confidence-high { color: #4ade80; font-weight: bold; }
+       .confidence-med { color: #facc15; font-weight: bold; }
+       .winner { font-size: 1.2em; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <h1>🎾 Daily AI Tennis Predictions</h1>
+        <p>Predictions powered by Google Gemini 1.5 Flash.</p>
+        <small>Last Updated: {{ last_updated }} UTC</small>
+        <hr>
+
+        {% if matches %}
+            {% for match in matches %}
+            <article class="match-card">
+                <header>
+                    <strong>{{ match.tournament }}</strong> 
+                    <span style="float:right">Court: {{ match.surface }}</span>
+                </header>
+                <div class="grid">
+                    <div>
+                        <h3>{{ match.player1 }}</h3>
+                        <small>vs</small>
+                        <h3>{{ match.player2 }}</h3>
+                    </div>
+                    <div>
+                        <label>Predicted Winner</label>
+                        <div class="winner">{{ match.prediction.winner }}</div>
+                        <small>Confidence: 
+                            <span class="{% if match.prediction.confidence > 75 %}confidence-high{% else %}confidence-med{% endif %}">
+                                {{ match.prediction.confidence }}%
+                            </span>
+                        </small>
+                        <p><em>"{{ match.prediction.reasoning }}"</em></p>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        {% else %}
+            <article>
+                <h3>No Matches Today</h3>
+                <p>No high-profile matches were found on the schedule today.</p>
+            </article>
+        {% endif %}
+    </main>
+</body>
+</html>
