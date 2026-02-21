@@ -17,7 +17,6 @@ model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_m
 
 def get_matches():
     """Fetches upcoming tennis matches."""
-    # Using a generic RapidAPI endpoint structure (adjust URL if using a specific provider like MatchStat)
     url = "https://ultimate-tennis1.p.rapidapi.com/v1/matches"
     today = datetime.datetime.now().strftime("%Y-%m-%d")
     
@@ -70,6 +69,7 @@ def main():
     
     # 2. Analyze with AI
     analyzed_matches =
+    
     for match in matches:
         print(f"Analyzing {match['player1']} vs {match['player2']}...")
         prediction = get_prediction(match)
