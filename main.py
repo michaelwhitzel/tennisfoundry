@@ -31,8 +31,8 @@ def get_matches():
         data = response.json()
         
         # Simple data cleaning to get a list of readable matches
-        matches =
-        raw_matches = data.get('events',)[:10] # Limit to 10 matches to save AI credits
+        matches = list()
+        raw_matches = data.get('events', list())[:10] # Limit to 10 matches to save AI credits
         
         for m in raw_matches:
             matches.append({
@@ -44,7 +44,7 @@ def get_matches():
         return matches
     except Exception as e:
         print(f"Error fetching data: {e}")
-        return
+        return list()
 
 def get_prediction(match):
     """Asks Gemini to predict the winner."""
@@ -68,7 +68,7 @@ def main():
     matches = get_matches()
     
     # 2. Analyze with AI
-    analyzed_matches =
+    analyzed_matches = list()
     
     for match in matches:
         print(f"Analyzing {match['player1']} vs {match['player2']}...")
