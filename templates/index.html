@@ -4,54 +4,84 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Tennis AI</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet" href="[https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css](https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css)">
     <style>
         :root { --primary: #2c7be5; }
-       .match-card { padding: 20px; margin-bottom: 20px; border-radius: 8px; background: #1f2937; color: white; }
-       .confidence-high { color: #4ade80; font-weight: bold; }
-       .confidence-med { color: #facc15; font-weight: bold; }
-       .winner { font-size: 1.2em; font-weight: bold; }
+        body { background-color: #111827; }
+      .match-card { padding: 20px; margin-bottom: 20px; border-radius: 8px; background: #1f2937; color: white; border-left: 4px solid #3b82f6;}
+      .confidence-high { color: #4ade80; font-weight: bold; }
+      .confidence-med { color: #facc15; font-weight: bold; }
+      .winner { font-size: 1.2em; font-weight: bold; color: #60a5fa;}
+      .player-row { display: flex; align-items: center; gap: 12px; margin-bottom: 5px; }
+      .player-img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; background: #374151; }
+      .placeholder-img { width: 45px; height: 45px; border-radius: 50%; background: #374151; display: flex; align-items: center; justify-content: center; font-size: 1.2em; }
     </style>
 </head>
 <body>
     <main class="container">
-        <h1>🎾 Daily AI Tennis Predictions</h1>
-        <p>Predictions powered by Google Gemini 1.5 Flash.</p>
-        <small>Last Updated: {{ last_updated }} UTC</small>
-        <hr>
+        <h1 style="color: white;">🎾 Daily AI Tennis Predictions</h1>
+        <p style="color: #9ca3af;">Predictions powered by Gemini 2.5 Flash using the ANP Model.</p>
+        <small style="color: #6b7280;">Last Updated: {{ last_updated }} UTC</small>
+        <hr style="border-color: #374151;">
 
-        {% if matches %}
-            {% for match in matches %}
-            <article class="match-card">
-                <header>
-                    <strong>{{ match.tournament }}</strong> 
-                    <span style="float:right">Court: {{ match.surface }}</span>
-                </header>
-                <div class="grid">
-                    <div>
-                        <h3>{{ match.player1 }}</h3>
-                        <small>vs</small>
-                        <h3>{{ match.player2 }}</h3>
+        {% for tour, tourneys in matches.items() %}
+            {% if tourneys %}
+                <h2 style="color: #4ade80; margin-top: 40px;">{{ tour }} Tour</h2>
+                
+                {% for tourney_name, tourney_matches in tourneys.items() %}
+                    <h3 style="border-bottom: 1px solid #374151; padding-bottom: 10px; margin-top: 30px; color: white;">
+                        {{ tourney_name }} <span style="float: right; font-size: 0.6em; color: #9ca3af;">Court: {{ tourney_matches.surface }}</span>
+                    </h3>
+                    
+                    <div class="grid">
+                        {% for match in tourney_matches %}
+                        <article class="match-card">
+                            <div class="grid">
+                                <div>
+                                    <div class="player-row">
+                                        {% if match.p1_image %}
+                                            <img src="{{ match.p1_image }}" class="player-img" alt="Photo">
+                                        {% else %}
+                                            <div class="placeholder-img">👤</div>
+                                        {% endif %}
+                                        <div>
+                                            <h4 style="margin: 0; color: white;">{{ match.player1 }}</h4>
+                                            <small style="color: #9ca3af;">Rank: {{ match.p1_rank }}</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="margin-left: 15px; color: #6b7280; font-size: 0.8em; font-weight: bold; margin-bottom: 5px;">VS</div>
+                                    
+                                    <div class="player-row">
+                                        {% if match.p2_image %}
+                                            <img src="{{ match.p2_image }}" class="player-img" alt="Photo">
+                                        {% else %}
+                                            <div class="placeholder-img">👤</div>
+                                        {% endif %}
+                                        <div>
+                                            <h4 style="margin: 0; color: white;">{{ match.player2 }}</h4>
+                                            <small style="color: #9ca3af;">Rank: {{ match.p2_rank }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label style="color: #9ca3af;">Predicted Winner</label>
+                                    <div class="winner">{{ match.prediction.winner }}</div>
+                                    <small style="color: #9ca3af;">Confidence: 
+                                        <span class="{% if match.prediction.confidence > 75 %}confidence-high{% else %}confidence-med{% endif %}">
+                                            {{ match.prediction.confidence }}%
+                                        </span>
+                                    </small>
+                                    <p style="margin-top: 10px; font-style: italic; color: #d1d5db;">"{{ match.prediction.reasoning }}"</p>
+                                </div>
+                            </div>
+                        </article>
+                        {% endfor %}
                     </div>
-                    <div>
-                        <label>Predicted Winner</label>
-                        <div class="winner">{{ match.prediction.winner }}</div>
-                        <small>Confidence: 
-                            <span class="{% if match.prediction.confidence > 75 %}confidence-high{% else %}confidence-med{% endif %}">
-                                {{ match.prediction.confidence }}%
-                            </span>
-                        </small>
-                        <p><em>"{{ match.prediction.reasoning }}"</em></p>
-                    </div>
-                </div>
-            </article>
-            {% endfor %}
-        {% else %}
-            <article>
-                <h3>No Matches Today</h3>
-                <p>No high-profile matches were found on the schedule today.</p>
-            </article>
-        {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
     </main>
 </body>
 </html>
