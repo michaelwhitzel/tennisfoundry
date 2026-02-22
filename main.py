@@ -15,9 +15,11 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 
 def get_matches():
     """Fetches upcoming tennis matches."""
-    # Added https:// and the /fixtures endpoint
-    url = "https://tennis-api-atp-wta-itf.p.rapidapi.com/fixtures"
     today = datetime.datetime.now().strftime("%Y-%m-%d")
+    
+    # We use an f-string (notice the 'f' before the quotes) to dynamically 
+    # insert today's date directly into the URL path, exactly as the API requires.
+    url = f"https://tennis-api-atp-wta-itf.p.rapidapi.com/tennis/v2/atp/fixtures/{today}"
     
     headers = {
         "X-RapidAPI-Key": RAPID_API_KEY,
@@ -25,21 +27,19 @@ def get_matches():
     }
     
     try:
-        # Note: Depending on the API, "date" might need to be "date_start" or "match_date"
-        response = requests.get(url, headers=headers, params={"date": today})
-        response.raise_for_status() # Catches bad URLs or 403 Forbidden errors
+        # We removed the params={"date": today} because the date is now in the URL!
+        response = requests.get(url, headers=headers)
+        response.raise_for_status() 
         data = response.json()
         print("API RESPONSE:", data)
         
         matches = list()
         
-        # We will try 'data' first. If the log shows the list is called something else 
-        # (like 'fixtures' or 'events'), change the word 'data' right here:
+        # We are temporarily guessing the data is stored under 'data' or 'events'
+        # We will check your logs to see exactly what this API calls it!
         raw_matches = data.get('data', list())[:10] 
         
         for m in raw_matches:
-            # Matchstat might use different labels (like 'home_player' vs 'player1')
-            # You can update these keys once you see the exact print output in the logs
             matches.append({
                 "tournament": m.get('tournament', {}).get('name', 'Tournament'),
                 "surface": m.get('tournament', {}).get('surface', 'Hard'),
@@ -63,7 +63,6 @@ def get_prediction(match):
     """
     
     try:
-        # Updated to use the new generate_content syntax
         response = client.models.generate_content(
             model='gemini-1.5-flash',
             contents=prompt,
