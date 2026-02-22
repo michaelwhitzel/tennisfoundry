@@ -2,11 +2,11 @@ import os
 import requests
 import json
 import datetime
+import time
 from google import genai
 from jinja2 import Environment, FileSystemLoader
 
 # 1. SETUP
-# Retrieve keys from GitHub Secrets
 RAPID_API_KEY = os.environ.get("RAPID_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
@@ -31,7 +31,6 @@ def get_matches():
         matches = list()
         raw_matches = data.get('data', list())[:10] 
         
-        # MAPPING THE EXACT KEYS FROM YOUR LOGS
         for m in raw_matches:
             matches.append({
                 "tournament": "ATP Match", 
@@ -51,17 +50,18 @@ def get_prediction(match):
     Match: {match['player1']} vs {match['player2']}
     
     Predict the winner based on general knowledge of these players.
-    Output JSON with these keys: winner, confidence (number 0-100), reasoning (max 15 words).
+    Output ONLY valid JSON with no markdown formatting, using exactly these keys:
+    {{"winner": "Player Name", "confidence": 85, "reasoning": "Brief explanation."}}
     """
     
     try:
-        # UPDATED TO GEMINI 2.0 FLASH
         response = client.models.generate_content(
             model='gemini-2.0-flash',
-            contents=prompt,
-            config={"response_mime_type": "application/json"}
+            contents=prompt
         )
-        return json.loads(response.text)
+        # Strip away any markdown formatting the AI might try to add
+        text = response.text.replace("```json", "").replace("```", "").strip()
+        return json.loads(text)
     except Exception as e:
         print(f"AI Error: {e}")
         return {"winner": "TBD", "confidence": 0, "reasoning": "Analysis unavailable"}
@@ -78,6 +78,9 @@ def main():
         prediction = get_prediction(match)
         match['prediction'] = prediction
         analyzed_matches.append(match)
+        
+        # Pause for 4 seconds between AI requests so we don't trigger the free-tier rate limit!
+        time.sleep(4) 
         
     # 3. Build Website
     env = Environment(loader=FileSystemLoader('templates'))
