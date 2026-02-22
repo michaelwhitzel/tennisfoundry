@@ -55,9 +55,9 @@ def get_prediction(match):
     """
     
     try:
-        # Reverted to the stable Gemini 1.5 Flash model for new API keys
+        # Using the current, fully supported Gemini 2.5 Flash model
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-2.5-flash',
             contents=prompt
         )
         # Strip away any markdown formatting the AI might try to add
