@@ -22,7 +22,7 @@ def get_matches():
         "X-RapidAPI-Host": "tennis-api-atp-wta-itf.p.rapidapi.com"
     }
     
-    all_matches =
+    all_matches = list()
     
     # Loop through both the men's and women's tours
     for tour in ['atp', 'wta']:
@@ -41,7 +41,7 @@ def get_matches():
             data = response.json()
             
             # We removed the [:10] limit to process every match found
-            raw_matches = data.get('data',)
+            raw_matches = data.get('data', list())
             
             for m in raw_matches:
                 # Extract the newly included tournament data
@@ -99,7 +99,7 @@ def main():
     matches = get_matches()
     
     # 2. Analyze with AI
-    analyzed_matches =
+    analyzed_matches = list()
     
     for match in matches:
         print(f"Analyzing {match['player1']} vs {match['player2']} at {match['tournament']}...")
