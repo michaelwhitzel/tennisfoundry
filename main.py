@@ -10,28 +10,26 @@ from jinja2 import Environment, FileSystemLoader
 RAPID_API_KEY = os.environ.get("RAPID_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# Initialize the new Google GenAI client
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 def get_matches():
-    """Fetches upcoming ATP and WTA tennis matches."""
     today = datetime.datetime.now().strftime("%Y-%m-%d")
-    
     headers = {
         "X-RapidAPI-Key": RAPID_API_KEY,
         "X-RapidAPI-Host": "tennis-api-atp-wta-itf.p.rapidapi.com"
     }
     
-    all_matches = list()
+    # Create our grouped dictionary
+    all_matches = dict()
+    all_matches = dict()
+    all_matches = dict()
     
-    # Loop through both the men's and women's tours
     for tour in ['atp', 'wta']:
         url = f"https://tennis-api-atp-wta-itf.p.rapidapi.com/tennis/v2/{tour}/fixtures/{today}"
         
-        # 'include' asks the API to attach the hidden tournament and court data
-        # 'pageSize' ensures we get a full list of matches, not just the first few
+        # Request player profiles so we can get images and ranks
         querystring = {
-            "include": "tournament,tournament.court",
+            "include": "tournament,tournament.court,player1,player2",
             "pageSize": 100
         }
         
@@ -39,48 +37,87 @@ def get_matches():
             response = requests.get(url, headers=headers, params=querystring)
             response.raise_for_status() 
             data = response.json()
-            
-            # We removed the [:10] limit to process every match found
             raw_matches = data.get('data', list())
             
+            tour_key = tour.upper()
+            
             for m in raw_matches:
-                # Extract the newly included tournament data
-                tournament_info = m.get('tournament', {})
-                tourney_name = tournament_info.get('name', f'{tour.upper()} Match')
+                tourney_name = m.get('tournament', dict()).get('name', f'{tour_key} Match')
                 
-                # FILTER: Skip Challenger and ITF events
+                # FILTER: Skip Challenger, ITF, and Doubles events
                 name_check = tourney_name.lower()
-                if "challenger" in name_check or "itf" in name_check:
+                if "challenger" in name_check or "itf" in name_check or "doubles" in name_check:
                     continue
                 
-                # Extract the court surface (e.g., Hard, Clay, Grass)
-                court_info = tournament_info.get('court', {})
-                surface = court_info.get('name', 'Unknown')
+                p1 = m.get('player1', dict())
+                p2 = m.get('player2', dict())
                 
-                all_matches.append({
-                    "tournament": tourney_name, 
-                    "surface": surface, 
-                    "player1": m.get('player1', {}).get('name', 'Player 1'),
-                    "player2": m.get('player2', {}).get('name', 'Player 2'),
-                })
+                p1_name = p1.get('name', 'Player 1')
+                p2_name = p2.get('name', 'Player 2')
+                
+                # Secondary filter to ensure no doubles teams slip through
+                if "/" in p1_name or "/" in p2_name:
+                    continue
+                
+                # Extract Ranks safely (handling players without a rank)
+                def get_rank(player_data):
+                    r = player_data.get('ranking') or player_data.get('rank')
+                    try:
+                        return int(r)
+                    except (ValueError, TypeError):
+                        return 9999
+                        
+                p1_rank = get_rank(p1)
+                p2_rank = get_rank(p2)
+                
+                # Extract Images
+                p1_image = p1.get('image') or p1.get('photo', '')
+                p2_image = p2.get('image') or p2.get('photo', '')
+                
+                surface = m.get('tournament', dict()).get('court', dict()).get('name', 'Unknown')
+                
+                match_obj = dict(
+                    tournament=tourney_name,
+                    surface=surface,
+                    player1=p1_name,
+                    player2=p2_name,
+                    p1_rank=p1_rank if p1_rank!= 9999 else "UR",
+                    p2_rank=p2_rank if p2_rank!= 9999 else "UR",
+                    p1_image=p1_image,
+                    p2_image=p2_image,
+                    best_rank=min(p1_rank, p2_rank)
+                )
+                
+                # Group by tournament
+                if tourney_name not in all_matches[tour_key]:
+                    all_matches[tour_key][tourney_name] = list()
+                    
+                all_matches[tour_key][tourney_name].append(match_obj)
                 
         except Exception as e:
             print(f"Error fetching {tour.upper()} data: {e}")
             
+    # SORT MATCHES BY RANK (Highest ranked player to lowest)
+    for tour_key in all_matches:
+        for tourney in all_matches[tour_key]:
+            all_matches[tour_key][tourney].sort(key=lambda x: x['best_rank'])
+            
     return all_matches
 
 def get_prediction(match):
-    """Asks Gemini to predict the winner."""
-    # We added the tournament and surface directly into the AI prompt so it can reason better!
+    # Updated to strictly enforce ANP methodology and fix the 85% bug
     prompt = f"""
-    Act as a professional tennis analyst. 
-    Match: {match['player1']} vs {match['player2']}
+    Act as a professional tennis analyst applying the Analytic Network Process (ANP) model for match prediction.
+    Evaluate both tangible criteria (rankings, surface preference, head-to-head) and intangible criteria (psychological momentum, fatigue, motivation).
+    
+    Match: {match['player1']} (Rank: {match['p1_rank']}) vs {match['player2']} (Rank: {match['p2_rank']})
     Tournament: {match['tournament']}
     Surface: {match['surface']}
     
-    Predict the winner based on general knowledge of these players and their surface preferences.
-    Output ONLY valid JSON with no markdown formatting, using exactly these keys:
-    {{"winner": "Player Name", "confidence": 85, "reasoning": "Brief explanation."}}
+    Predict the winner.
+    Output ONLY valid JSON with no markdown formatting. Do not wrap in ```json.
+    Use exactly these keys:
+    {{"winner": "Player Name", "confidence": <insert integer between 0 and 100>, "reasoning": "Brief ANP-based explanation."}}
     """
     
     try:
@@ -92,29 +129,24 @@ def get_prediction(match):
         return json.loads(text)
     except Exception as e:
         print(f"AI Error: {e}")
-        return {"winner": "TBD", "confidence": 0, "reasoning": "Analysis unavailable"}
+        return dict(winner="TBD", confidence=0, reasoning="Analysis unavailable")
 
 def main():
-    # 1. Get Data
-    matches = get_matches()
+    matches_dict = get_matches()
     
-    # 2. Analyze with AI
-    analyzed_matches = list()
-    
-    for match in matches:
-        print(f"Analyzing {match['player1']} vs {match['player2']} at {match['tournament']}...")
-        prediction = get_prediction(match)
-        match['prediction'] = prediction
-        analyzed_matches.append(match)
+    # Analyze with AI
+    for tour in matches_dict:
+        for tourney in matches_dict[tour]:
+            for match in matches_dict[tour][tourney]:
+                print(f"Analyzing {match['player1']} vs {match['player2']}...")
+                match['prediction'] = get_prediction(match)
+                time.sleep(4) 
         
-        # Pause for 4 seconds between AI requests
-        time.sleep(4) 
-        
-    # 3. Build Website
+    # Build Website
     env = Environment(loader=FileSystemLoader('templates'))
     template = env.get_template('index.html')
     html_output = template.render(
-        matches=analyzed_matches,
+        matches=matches_dict,
         last_updated=datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     )
     
