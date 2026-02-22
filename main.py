@@ -55,8 +55,9 @@ def get_prediction(match):
     """
     
     try:
+        # Reverted to the stable Gemini 1.5 Flash model for new API keys
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-1.5-flash',
             contents=prompt
         )
         # Strip away any markdown formatting the AI might try to add
@@ -79,7 +80,7 @@ def main():
         match['prediction'] = prediction
         analyzed_matches.append(match)
         
-        # Pause for 4 seconds between AI requests so we don't trigger the free-tier rate limit!
+        # Pause for 4 seconds between AI requests so we don't trigger the free-tier rate limit
         time.sleep(4) 
         
     # 3. Build Website
