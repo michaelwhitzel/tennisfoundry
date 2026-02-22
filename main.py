@@ -16,9 +16,6 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 def get_matches():
     """Fetches upcoming tennis matches."""
     today = datetime.datetime.now().strftime("%Y-%m-%d")
-    
-    # We use an f-string (notice the 'f' before the quotes) to dynamically 
-    # insert today's date directly into the URL path, exactly as the API requires.
     url = f"https://tennis-api-atp-wta-itf.p.rapidapi.com/tennis/v2/atp/fixtures/{today}"
     
     headers = {
@@ -27,24 +24,20 @@ def get_matches():
     }
     
     try:
-        # We removed the params={"date": today} because the date is now in the URL!
         response = requests.get(url, headers=headers)
         response.raise_for_status() 
         data = response.json()
-        print("API RESPONSE:", data)
         
         matches = list()
-        
-        # We are temporarily guessing the data is stored under 'data' or 'events'
-        # We will check your logs to see exactly what this API calls it!
         raw_matches = data.get('data', list())[:10] 
         
+        # MAPPING THE EXACT KEYS FROM YOUR LOGS
         for m in raw_matches:
             matches.append({
-                "tournament": m.get('tournament', {}).get('name', 'Tournament'),
-                "surface": m.get('tournament', {}).get('surface', 'Hard'),
-                "player1": m.get('homeTeam', {}).get('name', 'Player 1'),
-                "player2": m.get('awayTeam', {}).get('name', 'Player 2'),
+                "tournament": "ATP Match", 
+                "surface": "Unknown", 
+                "player1": m.get('player1', {}).get('name', 'Player 1'),
+                "player2": m.get('player2', {}).get('name', 'Player 2'),
             })
         return matches
     except Exception as e:
@@ -56,15 +49,15 @@ def get_prediction(match):
     prompt = f"""
     Act as a professional tennis analyst. 
     Match: {match['player1']} vs {match['player2']}
-    Surface: {match['surface']}
     
     Predict the winner based on general knowledge of these players.
     Output JSON with these keys: winner, confidence (number 0-100), reasoning (max 15 words).
     """
     
     try:
+        # UPDATED TO GEMINI 2.0 FLASH
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-2.0-flash',
             contents=prompt,
             config={"response_mime_type": "application/json"}
         )
