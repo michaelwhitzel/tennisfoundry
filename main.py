@@ -2,7 +2,7 @@ import os
 import requests
 import json
 import datetime
-import google.generativeai as genai
+from google import genai
 from jinja2 import Environment, FileSystemLoader
 
 # 1. SETUP
@@ -10,14 +10,13 @@ from jinja2 import Environment, FileSystemLoader
 RAPID_API_KEY = os.environ.get("RAPID_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-genai.configure(api_key=GEMINI_API_KEY)
-
-# Use 'response_mime_type' to force Gemini to reply with JSON
-model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
+# Initialize the new Google GenAI client
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 def get_matches():
     """Fetches upcoming tennis matches."""
-    url = "https://ultimate-tennis1.p.rapidapi.com/v1/matches"
+    # Added https:// and the /fixtures endpoint
+    url = "https://tennis-api-atp-wta-itf.p.rapidapi.com/fixtures"
     today = datetime.datetime.now().strftime("%Y-%m-%d")
     
     headers = {
@@ -26,16 +25,21 @@ def get_matches():
     }
     
     try:
-        # Fetching matches for today
+        # Note: Depending on the API, "date" might need to be "date_start" or "match_date"
         response = requests.get(url, headers=headers, params={"date": today})
+        response.raise_for_status() # Catches bad URLs or 403 Forbidden errors
         data = response.json()
         print("API RESPONSE:", data)
         
-        # Simple data cleaning to get a list of readable matches
         matches = list()
-        raw_matches = data.get('events', list())[:10] # Limit to 10 matches to save AI credits
+        
+        # We will try 'data' first. If the log shows the list is called something else 
+        # (like 'fixtures' or 'events'), change the word 'data' right here:
+        raw_matches = data.get('data', list())[:10] 
         
         for m in raw_matches:
+            # Matchstat might use different labels (like 'home_player' vs 'player1')
+            # You can update these keys once you see the exact print output in the logs
             matches.append({
                 "tournament": m.get('tournament', {}).get('name', 'Tournament'),
                 "surface": m.get('tournament', {}).get('surface', 'Hard'),
@@ -59,9 +63,15 @@ def get_prediction(match):
     """
     
     try:
-        response = model.generate_content(prompt)
+        # Updated to use the new generate_content syntax
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=prompt,
+            config={"response_mime_type": "application/json"}
+        )
         return json.loads(response.text)
-    except:
+    except Exception as e:
+        print(f"AI Error: {e}")
         return {"winner": "TBD", "confidence": 0, "reasoning": "Analysis unavailable"}
 
 def main():
