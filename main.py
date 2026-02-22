@@ -22,13 +22,14 @@ def get_matches():
     
     headers = {
         "X-RapidAPI-Key": RAPID_API_KEY,
-        "X-RapidAPI-Host": "ultimate-tennis1.p.rapidapi.com"
+        "X-RapidAPI-Host": "tennis-api-atp-wta-itf.p.rapidapi.com"
     }
     
     try:
         # Fetching matches for today
         response = requests.get(url, headers=headers, params={"date": today})
         data = response.json()
+        print("API RESPONSE:", data)
         
         # Simple data cleaning to get a list of readable matches
         matches = list()
