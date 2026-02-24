@@ -7,58 +7,65 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
   <style>
     body { background-color: #111827; }
+    .main-container { max-width: 1100px; margin: 0 auto; padding: 20px; }
 
-    .main-container { max-width: 900px; margin: 0 auto; padding: 20px; }
-
-    /* ✅ Card stack: ALWAYS single column */
+    /* Gallery: 1 col on small screens, auto-fit 2+ cols on wide screens */
     .match-list {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
       gap: 18px;
       margin-top: 18px;
+      margin-bottom: 26px;
+    }
+    @media (max-width: 420px) {
+      .match-list { grid-template-columns: 1fr; }
     }
 
     .match-card {
-      padding: 22px;
-      border-radius: 10px;
+      padding: 20px;
+      border-radius: 12px;
       background: #1f2937;
       color: white;
       border-left: 4px solid #3b82f6;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.18);
     }
 
-    /* ✅ Inside each card: 2 columns on desktop, 1 column on mobile */
+    /* Inside each card: stack by default (prevents squish) */
     .match-inner {
       display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 18px;
+      grid-template-columns: 1fr;
+      gap: 14px;
       align-items: start;
     }
-    @media (max-width: 720px) {
-      .match-inner { grid-template-columns: 1fr; }
+    /* If viewport is wide enough, allow 2 columns inside each card */
+    @media (min-width: 1100px) {
+      .match-inner {
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 18px;
+      }
     }
 
     .confidence-high { color: #4ade80; font-weight: bold; }
     .confidence-med { color: #facc15; font-weight: bold; }
-    .winner { font-size: 1.3em; font-weight: bold; color: #60a5fa; }
-    .player-row { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
+    .winner { font-size: 1.25em; font-weight: 800; color: #60a5fa; }
 
+    .player-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
     .player-img {
-      width: 72px; height: 72px;
+      width: 70px; height: 70px;
       border-radius: 50%;
       object-fit: cover;
       background: #374151;
       flex: 0 0 auto;
     }
     .placeholder-img {
-      width: 72px; height: 72px;
+      width: 70px; height: 70px;
       border-radius: 50%;
       background: #374151;
       display: flex; align-items: center; justify-content: center;
-      font-size: 2.2em;
+      font-size: 2.1em;
       flex: 0 0 auto;
     }
-
-    .reasoning-text { margin-top: 12px; color: #d1d5db; line-height: 1.4; }
+    .reasoning-text { margin-top: 10px; color: #d1d5db; line-height: 1.45; }
 
     details > summary {
       list-style: none;
@@ -77,6 +84,31 @@
       transition: transform 0.2s;
     }
     details[open] > summary::after { transform: rotate(180deg); }
+
+    /* Sticky tournament header */
+    .tourney-header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: #111827;
+      padding-top: 12px;
+      padding-bottom: 10px;
+      margin-top: 26px;
+      border-bottom: 1px solid #374151;
+    }
+    .tourney-header h3 {
+      margin: 0;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .tourney-court {
+      font-size: 0.75em;
+      color: #9ca3af;
+      white-space: nowrap;
+    }
   </style>
 </head>
 
@@ -89,21 +121,20 @@
 
     {% for tour, tourneys in matches.items() %}
       {% if tourneys %}
-        <details>
-          <summary style="color: #4ade80; font-size: 1.8em; font-weight: bold; margin-top: 20px; border-bottom: 2px solid #4ade80;">
+        <details open>
+          <summary style="color: #4ade80; font-size: 1.8em; font-weight: 800; margin-top: 14px; border-bottom: 2px solid #4ade80;">
             {{ tour }} Tour
           </summary>
 
-          <div style="padding-top: 15px;">
+          <div style="padding-top: 10px;">
             {% for tourney_name, tourney_data in tourneys.items() %}
-              <h3 style="border-bottom: 1px solid #374151; padding-bottom: 10px; margin-top: 30px; color: white;">
-                {{ tourney_name }}
-                <span style="float: right; font-size: 0.7em; color: #9ca3af;">
-                  Court: {{ tourney_data.surface }}
-                </span>
-              </h3>
+              <div class="tourney-header">
+                <h3>
+                  <span>{{ tourney_name }}</span>
+                  <span class="tourney-court">Court: {{ tourney_data.surface }}</span>
+                </h3>
+              </div>
 
-              <!-- ✅ single-column stack of cards -->
               <div class="match-list">
                 {% for match in tourney_data.matches %}
                   <article class="match-card">
@@ -121,7 +152,7 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           {% if match.p2_image %}
@@ -150,7 +181,6 @@
                   </article>
                 {% endfor %}
               </div>
-
             {% endfor %}
           </div>
         </details>
