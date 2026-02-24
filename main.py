@@ -5,22 +5,31 @@ import datetime
 from google import genai
 from jinja2 import Environment, FileSystemLoader
 
-# 1. SETUP
+# =========================
+# CONFIG / SETUP
+# =========================
 RAPID_API_KEY = os.environ.get("RAPID_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 DEBUG_DUMPS = os.environ.get("DEBUG_DUMPS", "0") == "1"
+
+if not RAPID_API_KEY:
+    raise RuntimeError("Missing RAPID_API_KEY env var")
+if not GEMINI_API_KEY:
+    raise RuntimeError("Missing GEMINI_API_KEY env var")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 RAPID_HOST = "tennis-api-atp-wta-itf.p.rapidapi.com"
 BASE_URL = f"https://{RAPID_HOST}"
 
-# In-memory cache to avoid repeated lookups (works great within a single run)
+# Cache for ranks during a single run
 rank_cache = {}
 
 
+# =========================
+# HELPERS
+# =========================
 def deep_get(d, path, default=None):
-    """Safely read nested dict keys."""
     cur = d
     for key in path:
         if not isinstance(cur, dict) or key not in cur:
@@ -30,7 +39,6 @@ def deep_get(d, path, default=None):
 
 
 def normalize_rank(value):
-    """Convert possible rank inputs into a valid int rank or None."""
     try:
         r = int(value)
         if 0 < r < 5000:
@@ -42,15 +50,14 @@ def normalize_rank(value):
 
 def extract_rank_from_player_or_match(player_data, match_data, key_prefix):
     """
-    Try many common ranking structures across APIs.
-    Returns int rank or None.
+    Try many common ranking structures. Returns int rank or None.
     """
     candidates = [
         # direct fields
         player_data.get("ranking"),
         player_data.get("rank"),
 
-        # common nested shapes
+        # nested common shapes
         deep_get(player_data, ["ranking", "rank"]),
         deep_get(player_data, ["ranking", "position"]),
         deep_get(player_data, ["rankings", "singles", "rank"]),
@@ -60,7 +67,7 @@ def extract_rank_from_player_or_match(player_data, match_data, key_prefix):
         deep_get(player_data, ["stats", "ranking"]),
         deep_get(player_data, ["stats", "rank"]),
 
-        # fixture-level fallback fields
+        # fixture-level fallbacks
         match_data.get(f"{key_prefix}Rank"),
         match_data.get(f"{key_prefix}_rank"),
         deep_get(match_data, [key_prefix, "ranking"]),
@@ -89,16 +96,14 @@ def try_fetch_json(url, headers, params=None, timeout=20):
 def fetch_player_rank_from_api(tour, player_id, headers):
     """
     If fixtures don't include rank, try to fetch player detail and parse it.
-    Uses a cache to avoid repeated calls.
-
-    This function tries multiple possible endpoint patterns (since API shapes vary).
+    This tries multiple endpoint patterns and fails gracefully.
+    Returns int rank or None.
     """
     if not player_id:
         return None
     if player_id in rank_cache:
         return rank_cache[player_id]
 
-    # Candidate endpoints (we don't know the exact one — debug dumps will confirm)
     candidate_urls = [
         f"{BASE_URL}/tennis/v2/{tour}/player/{player_id}",
         f"{BASE_URL}/tennis/v2/{tour}/players/{player_id}",
@@ -108,14 +113,12 @@ def fetch_player_rank_from_api(tour, player_id, headers):
     ]
 
     rank = None
-
     for url in candidate_urls:
         payload = try_fetch_json(url, headers=headers)
         if not payload:
             continue
 
         data = payload.get("data", payload)
-        # Sometimes player details are nested further
         if isinstance(data, dict) and "player" in data and isinstance(data["player"], dict):
             data = data["player"]
 
@@ -123,13 +126,13 @@ def fetch_player_rank_from_api(tour, player_id, headers):
         if rank is not None:
             break
 
-    rank_cache[player_id] = rank  # can be None (cache misses too)
+    rank_cache[player_id] = rank  # cache miss too (None)
     return rank
 
 
 def extract_surface(tourn, match_obj):
     """
-    Try multiple likely shapes for court/surface from tournament/match payload.
+    Try multiple likely shapes for court/surface.
     """
     surface = (
         tourn.get("surface")
@@ -142,139 +145,20 @@ def extract_surface(tourn, match_obj):
         or "Unknown"
     )
 
-    # Normalize a bit
     if isinstance(surface, dict):
         surface = surface.get("name") or surface.get("surface") or "Unknown"
     if not surface:
         surface = "Unknown"
 
-    return surface
-
-
-def get_matches():
-    today = datetime.datetime.now().strftime("%Y-%m-%d")
-
-    headers = {
-        "X-RapidAPI-Key": RAPID_API_KEY,
-        "X-RapidAPI-Host": RAPID_HOST
-    }
-
-    # New structure: tournament -> {surface, matches[]}
-    all_matches = {"ATP": {}, "WTA": {}}
-
-    for tour in ("atp", "wta"):
-        url = f"{BASE_URL}/tennis/v2/{tour}/fixtures/{today}"
-
-        # Pulling 100 matches per page and requesting extra player/court data
-        querystring = {"include": "tournament,tournament.court,player1,player2", "pageSize": 100}
-
-        try:
-            response = requests.get(url, headers=headers, params=querystring, timeout=25)
-            response.raise_for_status()
-            data = response.json()
-
-            raw_matches = data.get("data", [])
-            tour_key = tour.upper()
-            tour_dict = all_matches[tour_key]
-
-            dumped = False
-
-            for m in raw_matches:
-                tourn = m.get("tournament", {})
-                tourney_name = tourn.get("name", f"{tour_key} Match")
-                name_check = tourney_name.lower()
-
-                # STRICT FILTER: Block all Challenger, ITF, Doubles, and Exhibition matches.
-                exclusions = [
-                    "challenger", "itf", "doubles", "exhibition",
-                    "m15", "m25", "w15", "w35", "w50", "w75", "w100", "utr"
-                ]
-                if any(x in name_check for x in exclusions):
-                    continue
-
-                p1 = m.get("player1", {}) or {}
-                p2 = m.get("player2", {}) or {}
-
-                p1_name = p1.get("name", "Player 1")
-                p2_name = p2.get("name", "Player 2")
-
-                # remove doubles teams if they leak through
-                if "/" in p1_name or "/" in p2_name:
-                    continue
-
-                # Optional debug dumps (only once per run)
-                if DEBUG_DUMPS and not dumped:
-                    try:
-                        with open("debug_match.json", "w") as f:
-                            json.dump(m, f, indent=2)
-                        with open("debug_player1.json", "w") as f:
-                            json.dump(p1, f, indent=2)
-                        with open("debug_tournament.json", "w") as f:
-                            json.dump(tourn, f, indent=2)
-                        print("DEBUG: wrote debug_match.json, debug_player1.json, debug_tournament.json")
-                        dumped = True
-                    except Exception as e:
-                        print(f"DEBUG dump failed: {e}")
-
-                # IDs (used for player rank lookup if needed)
-                p1_id = p1.get("id") or p1.get("playerId") or deep_get(p1, ["player", "id"])
-                p2_id = p2.get("id") or p2.get("playerId") or deep_get(p2, ["player", "id"])
-
-                # Rank extraction (robust)
-                p1_rank = extract_rank_from_player_or_match(p1, m, "player1")
-                p2_rank = extract_rank_from_player_or_match(p2, m, "player2")
-
-                # If still missing, try player endpoint lookup (cached)
-                if p1_rank is None:
-                    p1_rank = fetch_player_rank_from_api(tour, str(p1_id) if p1_id else None, headers)
-                if p2_rank is None:
-                    p2_rank = fetch_player_rank_from_api(tour, str(p2_id) if p2_id else None, headers)
-
-                # Images with fallbacks
-                p1_image = p1.get("image") or p1.get("photo") or p1.get("picture") or ""
-                p2_image = p2.get("image") or p2.get("photo") or p2.get("picture") or ""
-
-                # Surface extraction (robust)
-                surface = extract_surface(tourn, m)
-
-                # Rank display / sorting rank
-                p1_rank_display = p1_rank if p1_rank is not None else "UR"
-                p2_rank_display = p2_rank if p2_rank is not None else "UR"
-                best_rank = min(p1_rank or 9999, p2_rank or 9999)
-
-                match_obj = {
-                    "tournament": tourney_name,
-                    "surface": surface,
-                    "player1": p1_name,
-                    "player2": p2_name,
-                    "p1_rank": p1_rank_display,
-                    "p2_rank": p2_rank_display,
-                    "p1_image": p1_image,
-                    "p2_image": p2_image,
-                    "p1_id": p1_id,
-                    "p2_id": p2_id,
-                    "best_rank": best_rank
-                }
-
-                # Tournament bucket
-                if tourney_name not in tour_dict:
-                    tour_dict[tourney_name] = {"surface": surface, "matches": []}
-
-                # Prefer a known surface over Unknown
-                if (tour_dict[tourney_name]["surface"] in ("Unknown", "", None)) and (surface not in ("Unknown", "", None)):
-                    tour_dict[tourney_name]["surface"] = surface
-
-                tour_dict[tourney_name]["matches"].append(match_obj)
-
-        except Exception as e:
-            print(f"Error fetching {tour.upper()} data: {e}")
-
-    # SORT MATCHES BY RANK (Lowest number is best)
-    for tour_key in all_matches:
-        for tourney_name in all_matches[tour_key]:
-            all_matches[tour_key][tourney_name]["matches"].sort(key=lambda x: x.get("best_rank", 9999))
-
-    return all_matches
+    # Normalize common variants a bit
+    s = str(surface).strip()
+    if s.lower() in ("hardcourt", "hard court"):
+        return "Hard"
+    if s.lower() in ("claycourt", "clay court"):
+        return "Clay"
+    if s.lower() in ("grasscourt", "grass court"):
+        return "Grass"
+    return s
 
 
 def get_prediction(match):
@@ -314,6 +198,176 @@ Use exactly these keys:
         return {"winner": "TBD", "confidence": 0, "reasoning": "Analysis unavailable"}
 
 
+# =========================
+# CORE: MATCH FETCHING (FIXES MISSING MATCHES)
+# =========================
+def get_matches():
+    """
+    Fixes missing matches by:
+    - fetching yesterday, today, tomorrow (UTC) to avoid UTC midnight cutoff
+    - paginating (page/pageNumber) with safety cap
+    - deduping matches across days/pages
+    - storing tournament-level metadata: {surface, matches[]}
+    """
+    utc_now = datetime.datetime.utcnow()
+    date_list = [
+        (utc_now - datetime.timedelta(days=1)).strftime("%Y-%m-%d"),
+        utc_now.strftime("%Y-%m-%d"),
+        (utc_now + datetime.timedelta(days=1)).strftime("%Y-%m-%d"),
+    ]
+
+    headers = {
+        "X-RapidAPI-Key": RAPID_API_KEY,
+        "X-RapidAPI-Host": RAPID_HOST
+    }
+
+    all_matches = {"ATP": {}, "WTA": {}}
+    seen_keys = set()
+
+    exclusions = [
+        "challenger", "itf", "doubles", "exhibition",
+        "m15", "m25", "w15", "w35", "w50", "w75", "w100", "utr"
+    ]
+
+    def add_match(tour_key, tourney_name, surface, match_obj):
+        if tourney_name not in all_matches[tour_key]:
+            all_matches[tour_key][tourney_name] = {"surface": surface, "matches": []}
+
+        # Prefer known surface over Unknown
+        if (all_matches[tour_key][tourney_name]["surface"] in ("Unknown", "", None)) and (surface not in ("Unknown", "", None)):
+            all_matches[tour_key][tourney_name]["surface"] = surface
+
+        all_matches[tour_key][tourney_name]["matches"].append(match_obj)
+
+    dumped_any = False
+
+    for tour in ("atp", "wta"):
+        tour_key = tour.upper()
+
+        for day in date_list:
+            page = 1
+            while True:
+                url = f"{BASE_URL}/tennis/v2/{tour}/fixtures/{day}"
+                querystring = {
+                    "include": "tournament,tournament.court,player1,player2",
+                    "pageSize": 100,
+                    "page": page,        # some APIs use this
+                    "pageNumber": page,  # some APIs use this instead
+                }
+
+                try:
+                    response = requests.get(url, headers=headers, params=querystring, timeout=25)
+                    response.raise_for_status()
+                    data = response.json()
+                    raw_matches = data.get("data", []) or []
+
+                    if not raw_matches:
+                        break
+
+                    for m in raw_matches:
+                        tourn = m.get("tournament", {}) or {}
+                        tourney_name = tourn.get("name", f"{tour_key} Match")
+                        name_check = tourney_name.lower()
+
+                        if any(x in name_check for x in exclusions):
+                            continue
+
+                        p1 = m.get("player1", {}) or {}
+                        p2 = m.get("player2", {}) or {}
+
+                        p1_name = p1.get("name", "Player 1")
+                        p2_name = p2.get("name", "Player 2")
+
+                        # remove doubles teams if they leak through
+                        if "/" in p1_name or "/" in p2_name:
+                            continue
+
+                        # optional debug dumps (only once per run)
+                        if DEBUG_DUMPS and not dumped_any:
+                            try:
+                                with open("debug_match.json", "w") as f:
+                                    json.dump(m, f, indent=2)
+                                with open("debug_player1.json", "w") as f:
+                                    json.dump(p1, f, indent=2)
+                                with open("debug_tournament.json", "w") as f:
+                                    json.dump(tourn, f, indent=2)
+                                print("DEBUG: wrote debug_match.json, debug_player1.json, debug_tournament.json")
+                                dumped_any = True
+                            except Exception as e:
+                                print(f"DEBUG dump failed: {e}")
+
+                        # Deduplicate across days/pages
+                        match_id = m.get("id") or m.get("fixtureId") or m.get("matchId")
+                        dedupe_key = match_id or f"{tourney_name}|{p1_name}|{p2_name}|{day}"
+                        if dedupe_key in seen_keys:
+                            continue
+                        seen_keys.add(dedupe_key)
+
+                        # IDs (for possible rank lookup)
+                        p1_id = p1.get("id") or p1.get("playerId") or deep_get(p1, ["player", "id"])
+                        p2_id = p2.get("id") or p2.get("playerId") or deep_get(p2, ["player", "id"])
+
+                        # Rank extraction (robust)
+                        p1_rank = extract_rank_from_player_or_match(p1, m, "player1")
+                        p2_rank = extract_rank_from_player_or_match(p2, m, "player2")
+
+                        # If still missing, try player endpoint lookup (cached)
+                        if p1_rank is None:
+                            p1_rank = fetch_player_rank_from_api(tour, str(p1_id) if p1_id else None, headers)
+                        if p2_rank is None:
+                            p2_rank = fetch_player_rank_from_api(tour, str(p2_id) if p2_id else None, headers)
+
+                        # Images
+                        p1_image = p1.get("image") or p1.get("photo") or p1.get("picture") or ""
+                        p2_image = p2.get("image") or p2.get("photo") or p2.get("picture") or ""
+
+                        # Surface
+                        surface = extract_surface(tourn, m)
+
+                        # Display + sorting helpers
+                        p1_rank_display = p1_rank if p1_rank is not None else "UR"
+                        p2_rank_display = p2_rank if p2_rank is not None else "UR"
+                        best_rank = min(p1_rank or 9999, p2_rank or 9999)
+
+                        match_obj = {
+                            "tournament": tourney_name,
+                            "surface": surface,
+                            "player1": p1_name,
+                            "player2": p2_name,
+                            "p1_rank": p1_rank_display,
+                            "p2_rank": p2_rank_display,
+                            "p1_image": p1_image,
+                            "p2_image": p2_image,
+                            "p1_id": p1_id,
+                            "p2_id": p2_id,
+                            "best_rank": best_rank,
+                        }
+
+                        add_match(tour_key, tourney_name, surface, match_obj)
+
+                    # If fewer than pageSize, likely last page
+                    if len(raw_matches) < 100:
+                        break
+
+                    page += 1
+                    if page > 10:  # safety cap
+                        break
+
+                except Exception as e:
+                    print(f"Error fetching {tour.upper()} data for {day} page {page}: {e}")
+                    break
+
+    # Sort matches by best_rank inside each tournament
+    for tour_key in all_matches:
+        for tourney_name in all_matches[tour_key]:
+            all_matches[tour_key][tourney_name]["matches"].sort(key=lambda x: x.get("best_rank", 9999))
+
+    return all_matches
+
+
+# =========================
+# MAIN
+# =========================
 def main():
     matches_dict = get_matches()
 
@@ -329,7 +383,7 @@ def main():
     template = env.get_template("index.html")
     html_output = template.render(
         matches=matches_dict,
-        last_updated=datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        last_updated=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")
     )
 
     with open("index.html", "w", encoding="utf-8") as f:
