@@ -7,58 +7,65 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
   <style>
     body { background-color: #111827; }
+    .main-container { max-width: 1100px; margin: 0 auto; padding: 20px; }
 
-    .main-container { max-width: 900px; margin: 0 auto; padding: 20px; }
-
-    /* ✅ Card stack: ALWAYS single column */
+    /* Gallery: 1 col on small screens, auto-fit 2+ cols on wide screens */
     .match-list {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
       gap: 18px;
       margin-top: 18px;
+      margin-bottom: 26px;
+    }
+    @media (max-width: 420px) {
+      .match-list { grid-template-columns: 1fr; }
     }
 
     .match-card {
-      padding: 22px;
-      border-radius: 10px;
+      padding: 20px;
+      border-radius: 12px;
       background: #1f2937;
       color: white;
       border-left: 4px solid #3b82f6;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.18);
     }
 
-    /* ✅ Inside each card: 2 columns on desktop, 1 column on mobile */
+    /* Inside each card: stack by default (prevents squish) */
     .match-inner {
       display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 18px;
+      grid-template-columns: 1fr;
+      gap: 14px;
       align-items: start;
     }
-    @media (max-width: 720px) {
-      .match-inner { grid-template-columns: 1fr; }
+    /* If viewport is wide enough, allow 2 columns inside each card */
+    @media (min-width: 1100px) {
+      .match-inner {
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 18px;
+      }
     }
 
     .confidence-high { color: #4ade80; font-weight: bold; }
     .confidence-med { color: #facc15; font-weight: bold; }
-    .winner { font-size: 1.3em; font-weight: bold; color: #60a5fa; }
-    .player-row { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
+    .winner { font-size: 1.25em; font-weight: 800; color: #60a5fa; }
 
+    .player-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
     .player-img {
-      width: 72px; height: 72px;
+      width: 70px; height: 70px;
       border-radius: 50%;
       object-fit: cover;
       background: #374151;
       flex: 0 0 auto;
     }
     .placeholder-img {
-      width: 72px; height: 72px;
+      width: 70px; height: 70px;
       border-radius: 50%;
       background: #374151;
       display: flex; align-items: center; justify-content: center;
-      font-size: 2.2em;
+      font-size: 2.1em;
       flex: 0 0 auto;
     }
-
-    .reasoning-text { margin-top: 12px; color: #d1d5db; line-height: 1.4; }
+    .reasoning-text { margin-top: 10px; color: #d1d5db; line-height: 1.45; }
 
     details > summary {
       list-style: none;
@@ -77,6 +84,31 @@
       transition: transform 0.2s;
     }
     details[open] > summary::after { transform: rotate(180deg); }
+
+    /* Sticky tournament header */
+    .tourney-header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: #111827;
+      padding-top: 12px;
+      padding-bottom: 10px;
+      margin-top: 26px;
+      border-bottom: 1px solid #374151;
+    }
+    .tourney-header h3 {
+      margin: 0;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .tourney-court {
+      font-size: 0.75em;
+      color: #9ca3af;
+      white-space: nowrap;
+    }
   </style>
 </head>
 
@@ -84,66 +116,26 @@
   <main class="main-container">
     <h1 style="color: white;">🎾 Daily AI Tennis Predictions</h1>
     <p style="color: #9ca3af;">Predictions powered by Gemini 2.5 Flash.</p>
-    <small style="color: #6b7280;">Last Updated: 2026-02-24 08:14 UTC</small>
+    <small style="color: #6b7280;">Last Updated: 2026-02-25 00:42 UTC</small>
     <hr style="border-color: #374151;">
 
     
       
-        <details>
-          <summary style="color: #4ade80; font-size: 1.8em; font-weight: bold; margin-top: 20px; border-bottom: 2px solid #4ade80;">
+        <details open>
+          <summary style="color: #4ade80; font-size: 1.8em; font-weight: 800; margin-top: 14px; border-bottom: 2px solid #4ade80;">
             ATP Tour
           </summary>
 
-          <div style="padding-top: 15px;">
+          <div style="padding-top: 10px;">
             
-              <h3 style="border-bottom: 1px solid #374151; padding-bottom: 10px; margin-top: 30px; color: white;">
-                BCI Seguros Chile Open - Santiago
-                <span style="float: right; font-size: 0.7em; color: #9ca3af;">
-                  Court: Clay
-                </span>
-              </h3>
+              <div class="tourney-header">
+                <h3>
+                  <span>BCI Seguros Chile Open - Santiago</span>
+                  <span class="tourney-court">Court: Clay</span>
+                </h3>
+              </div>
 
-              <!-- ✅ single-column stack of cards -->
               <div class="match-list">
-                
-                  <article class="match-card">
-                    <div class="match-inner">
-                      <div>
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Francesco Passaro</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
-
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Adolfo Daniel Vallejo</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Francesco Passaro</div>
-                        <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-high">
-                            92%
-                          </span>
-                        </small>
-                        <p class="reasoning-text">"Passaro's recent qualifying victories, especially against Andrea Vavassori, demonstrate superior form, experience, and court adaptation against the less seasoned wildcard."</p>
-                      </div>
-                    </div>
-                  </article>
                 
                   <article class="match-card">
                     <div class="match-inner">
@@ -158,7 +150,7 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
@@ -176,49 +168,10 @@
                         <div class="winner">Thiago Agustin Tirante</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            93%
+                            91%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Thiago Agustin Tirante's extensive experience and proven success on the Challenger clay circuit give him a significant edge."</p>
-                      </div>
-                    </div>
-                  </article>
-                
-                  <article class="match-card">
-                    <div class="match-inner">
-                      <div>
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Emilio Nava</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
-
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Matteo Berrettini</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Matteo Berrettini</div>
-                        <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-high">
-                            77%
-                          </span>
-                        </small>
-                        <p class="reasoning-text">"Despite a long injury layoff, Berrettini's elite-level game and serve are too formidable for Nava, who will struggle to consistently counter his power."</p>
+                        <p class="reasoning-text">"Tirante's extensive experience and proven success on clay at a higher professional level give him a significant edge over the younger Buse."</p>
                       </div>
                     </div>
                   </article>
@@ -236,7 +189,7 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
@@ -257,7 +210,7 @@
                             78%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Navone's exceptional clay-court prowess and recent form on the surface make him the strong favorite against Kopriva."</p>
+                        <p class="reasoning-text">"Navone's exceptional recent form and comfort on clay, especially in South America, make him the clear favorite despite the lack of official rankings."</p>
                       </div>
                     </div>
                   </article>
@@ -270,13 +223,40 @@
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Matias Soto</h4>
+                            <h4 style="margin: 0; color: white;">Emilio Nava</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Matteo Berrettini</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Matteo Berrettini</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-high">
+                            88%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Despite his recent injury layoff, Matteo Berrettini's superior pedigree and power game on clay make him the clear favorite against Emilio Nava."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
@@ -286,17 +266,29 @@
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Matias Soto</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
                       </div>
 
                       <div>
                         <label style="color: #9ca3af;">Predicted Winner</label>
                         <div class="winner">Matias Soto</div>
                         <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-high">
-                            81%
+                          <span class="confidence-med">
+                            73%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Soto's significant home-court advantage and familiarity with the local clay conditions give him a decisive edge."</p>
+                        <p class="reasoning-text">"Matias Soto's significant home-court advantage on his preferred clay surface provides a decisive edge over his unranked opponent."</p>
                       </div>
                     </div>
                   </article>
@@ -314,7 +306,7 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
@@ -332,25 +324,179 @@
                         <div class="winner">Roman Andres Burruchaga</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            77%
+                            96%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Burruchaga's proven success and extensive experience on clay courts give him a decisive edge over Moller."</p>
+                        <p class="reasoning-text">"Roman Andres Burruchaga's superior professional experience, strong clay court pedigree, and current excellent form make him the clear favorite."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Francisco Cerundolo</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Elmer Moller</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Francisco Cerundolo</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-high">
+                            93%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Cerundolo's Argentinian clay-court pedigree gives him a significant edge on his preferred surface in familiar South American conditions."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Dino Prizmic</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Vilius Gaubas</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Dino Prizmic</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-high">
+                            94%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Dino Prizmic's proven junior Grand Slam title on clay positions him as the superior player on this surface."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Camilo Ugo Carabelli</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Yannick Hanfmann</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Yannick Hanfmann</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-high">
+                            93%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Yannick Hanfmann's dominant head-to-head record on clay and recent strong performance in Buenos Aires position him as the clear favorite."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Francisco Comesana</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Andrea Pellegrino</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Andrea Pellegrino</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-med">
+                            63%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Pellegrino's deeper experience on the Challenger circuit provides a tactical edge on clay."</p>
                       </div>
                     </div>
                   </article>
                 
               </div>
-
             
-              <h3 style="border-bottom: 1px solid #374151; padding-bottom: 10px; margin-top: 30px; color: white;">
-                Dubai Duty Free Tennis Championships - Dubai
-                <span style="float: right; font-size: 0.7em; color: #9ca3af;">
-                  Court: Hard
-                </span>
-              </h3>
+              <div class="tourney-header">
+                <h3>
+                  <span>Dubai Duty Free Tennis Championships - Dubai</span>
+                  <span class="tourney-court">Court: Hard</span>
+                </h3>
+              </div>
 
-              <!-- ✅ single-column stack of cards -->
               <div class="match-list">
                 
                   <article class="match-card">
@@ -366,7 +512,7 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
@@ -387,46 +533,7 @@
                             97%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Andrey Rublev's elite tour experience and established top-tier skill level on hard courts provide an overwhelming advantage over Valentin Royer."</p>
-                      </div>
-                    </div>
-                  </article>
-                
-                  <article class="match-card">
-                    <div class="match-inner">
-                      <div>
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Ugo Humbert</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
-
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Stefanos Tsitsipas</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Stefanos Tsitsipas</div>
-                        <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-high">
-                            78%
-                          </span>
-                        </small>
-                        <p class="reasoning-text">"Tsitsipas holds a dominant head-to-head record and possesses a superior hard-court pedigree despite Humbert's recent surge in form."</p>
+                        <p class="reasoning-text">"Rublev's established world-class talent and extensive ATP Tour experience far outweigh Royer's potential for an upset."</p>
                       </div>
                     </div>
                   </article>
@@ -444,7 +551,7 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
@@ -465,7 +572,7 @@
                             73%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Despite Mensik's exceptional recent form, Hurkacz's consistent top-tier performance and physical freshness provide a decisive advantage on the hard court."</p>
+                        <p class="reasoning-text">"Hurkacz's superior hard-court pedigree and extensive big-match experience are likely to prevail over Mensik's breakthrough momentum and youthful talent."</p>
                       </div>
                     </div>
                   </article>
@@ -483,7 +590,7 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
@@ -501,10 +608,10 @@
                         <div class="winner">Alexei Popyrin</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            83%
+                            87%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Popyrin's aggressive game and powerful serve are well-suited for Dubai's fast hard courts, offering him a clear advantage."</p>
+                        <p class="reasoning-text">"Alexei Popyrin's powerful hard-court game and superior match rhythm provide a decisive advantage over Kamil Majchrzak, who is still finding his form after a long absence."</p>
                       </div>
                     </div>
                   </article>
@@ -517,19 +624,58 @@
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Otto Virtanen</h4>
+                            <h4 style="margin: 0; color: white;">Ugo Humbert</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
                           
                           <div>
+                            <h4 style="margin: 0; color: white;">Stefanos Tsitsipas</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Stefanos Tsitsipas</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-high">
+                            78%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Tsitsipas's superior hard-court pedigree and recent form give him a decisive edge over Humbert."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
                             <h4 style="margin: 0; color: white;">Tallon Griekspoor</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Otto Virtanen</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
@@ -540,10 +686,10 @@
                         <div class="winner">Tallon Griekspoor</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            91%
+                            83%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Tallon Griekspoor's substantial ranking superiority and established ATP Tour experience on hard courts provide a decisive advantage over Otto Virtanen."</p>
+                        <p class="reasoning-text">"Tallon Griekspoor's superior ATP tour experience and robust hard court game make him the favorite."</p>
                       </div>
                     </div>
                   </article>
@@ -556,19 +702,19 @@
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Arthur Fils</h4>
+                            <h4 style="margin: 0; color: white;">Jiri Lehecka</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Jiri Lehecka</h4>
+                            <h4 style="margin: 0; color: white;">Luca Nardi</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
@@ -579,10 +725,10 @@
                         <div class="winner">Jiri Lehecka</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            81%
+                            91%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Lehecka's more established ATP tour experience and consistent hard-court results provide a decisive edge against the rising Fils."</p>
+                        <p class="reasoning-text">"Lehecka's superior ranking, powerful game suited for hard courts, and consistent form at the ATP Tour level position him as the clear favorite."</p>
                       </div>
                     </div>
                   </article>
@@ -595,12 +741,168 @@
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Jan-Lennard Struff</h4>
+                            <h4 style="margin: 0; color: white;">Alexander Bublik</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Jan-Lennard Struff</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Alexander Bublik</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-high">
+                            79%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Alexander Bublik's dominant 2-0 hard court head-to-head record and recent title win give him the edge over Jan-Lennard Struff."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Arthur Rinderknech</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Fabian Marozsan</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Fabian Marozsan</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-med">
+                            68%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Marozsan's consistent all-court game and proven mental fortitude in high-pressure situations give him a slight edge on the hard court surface."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Karen Khachanov</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Alexander Shevchenko</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Karen Khachanov</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-high">
+                            92%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Khachanov's recent title win in Doha combined with his superior experience and higher ranking makes him the clear favorite on a familiar hard court."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Arthur Rinderknech</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Jack Draper</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Arthur Rinderknech</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-med">
+                            73%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Rinderknech's strong qualifying run and recent momentum give him an edge over Draper, who has faced recent injury concerns."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Tallon Griekspoor</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
@@ -617,11 +919,11 @@
                         <label style="color: #9ca3af;">Predicted Winner</label>
                         <div class="winner">Alexander Bublik</div>
                         <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-med">
-                            74%
+                          <span class="confidence-high">
+                            77%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Bublik's recent hard-court title run and unpredictable arsenal provide a slight edge against Struff's formidable power game."</p>
+                        <p class="reasoning-text">"Bublik's strong recent hard-court form, including a title and a finalist appearance in Dubai last year, provides a significant advantage."</p>
                       </div>
                     </div>
                   </article>
@@ -634,19 +936,19 @@
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Fabian Marozsan</h4>
+                            <h4 style="margin: 0; color: white;">Felix Auger Aliassime</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Arthur Rinderknech</h4>
+                            <h4 style="margin: 0; color: white;">Giovanni Mpetshi Perricard</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
@@ -654,52 +956,13 @@
 
                       <div>
                         <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Fabian Marozsan</div>
-                        <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-med">
-                            73%
-                          </span>
-                        </small>
-                        <p class="reasoning-text">"Fabian Marozsan's impressive quarter-final run in Doha on a similar hard court demonstrates his current excellent form and confidence."</p>
-                      </div>
-                    </div>
-                  </article>
-                
-                  <article class="match-card">
-                    <div class="match-inner">
-                      <div>
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Alexander Shevchenko</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
-
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Karen Khachanov</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Karen Khachanov</div>
+                        <div class="winner">Felix Auger Aliassime</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            93%
+                            83%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Khachanov's superior ranking, experience, and recent title run in Doha make him the clear favorite on this surface."</p>
+                        <p class="reasoning-text">"Felix Auger Aliassime's superior experience, consistent baseline game, and overall court craft give him a significant edge against Mpetshi Perricard's powerful yet often inconsistent serve-and-forehand strategy."</p>
                       </div>
                     </div>
                   </article>
@@ -717,14 +980,14 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Denis Shapovalov</h4>
+                            <h4 style="margin: 0; color: white;">Jiri Lehecka</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
@@ -732,13 +995,13 @@
 
                       <div>
                         <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Denis Shapovalov</div>
+                        <div class="winner">Jiri Lehecka</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-med">
-                            63%
+                            71%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Shapovalov's explosive power and left-handed serve on fast hard courts should give him an edge against a potentially rusty Carreno-Busta."</p>
+                        <p class="reasoning-text">"Lehecka's recent form and physical readiness on hard courts give him a decisive edge over Carreno-Busta, who is returning from a long injury layoff."</p>
                       </div>
                     </div>
                   </article>
@@ -756,14 +1019,14 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Juncheng Shang</h4>
+                            <h4 style="margin: 0; color: white;">Stan Wawrinka</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
@@ -774,10 +1037,10 @@
                         <div class="winner">Daniil Medvedev</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            93%
+                            82%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Despite the ranking anomaly, Medvedev's superior experience and consistent hard-court prowess give him a significant edge over Shang."</p>
+                        <p class="reasoning-text">"Medvedev's relentless defensive play and consistent hard-court mastery pose a significant challenge to Wawrinka's power game."</p>
                       </div>
                     </div>
                   </article>
@@ -790,13 +1053,40 @@
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Zizou Bergs</h4>
+                            <h4 style="margin: 0; color: white;">Andrey Rublev</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Ugo Humbert</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Andrey Rublev</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-high">
+                            76%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Rublev's consistent top-tier performance on hard courts and his exceptional history at this specific tournament give him a crucial edge."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
@@ -806,44 +1096,81 @@
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Karen Khachanov</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
                       </div>
 
                       <div>
                         <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Zizou Bergs</div>
+                        <div class="winner">Karen Khachanov</div>
                         <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-med">
-                            68%
+                          <span class="confidence-high">
+                            92%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Jenson Brooksby's extended absence makes his match fitness and rhythm highly uncertain against a currently active and improving Zizou Bergs."</p>
+                        <p class="reasoning-text">"Khachanov's proven match fitness and established power game overwhelmingly favor him against Brooksby, who is returning from a lengthy suspension."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Jakub Mensik</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Alexei Popyrin</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Jakub Mensik</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-high">
+                            83%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Jakub Mensik is currently riding a wave of phenomenal form, having just reached an ATP 250 final with exceptional wins."</p>
                       </div>
                     </div>
                   </article>
                 
               </div>
-
             
-          </div>
-        </details>
-      
-    
-      
-        <details>
-          <summary style="color: #4ade80; font-size: 1.8em; font-weight: bold; margin-top: 20px; border-bottom: 2px solid #4ade80;">
-            WTA Tour
-          </summary>
+              <div class="tourney-header">
+                <h3>
+                  <span>Abierto Mexicano Telcel - Acapulco</span>
+                  <span class="tourney-court">Court: Hard</span>
+                </h3>
+              </div>
 
-          <div style="padding-top: 15px;">
-            
-              <h3 style="border-bottom: 1px solid #374151; padding-bottom: 10px; margin-top: 30px; color: white;">
-                Merida Open Akron - Merida
-                <span style="float: right; font-size: 0.7em; color: #9ca3af;">
-                  Court: Hard
-                </span>
-              </h3>
-
-              <!-- ✅ single-column stack of cards -->
               <div class="match-list">
                 
                   <article class="match-card">
@@ -854,19 +1181,19 @@
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Magda Linette</h4>
+                            <h4 style="margin: 0; color: white;">Adrian Mannarino</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Tatjana Maria</h4>
+                            <h4 style="margin: 0; color: white;">Sho Shimabukuro</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
@@ -874,13 +1201,13 @@
 
                       <div>
                         <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Tatjana Maria</div>
+                        <div class="winner">Adrian Mannarino</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            78%
+                            94%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Maria's consistent slice game and tactical acumen on hard courts provide a slight but decisive edge over Linette's power."</p>
+                        <p class="reasoning-text">"Mannarino's current elite form and vast experience on hard courts make him the clear favorite against his less seasoned opponent."</p>
                       </div>
                     </div>
                   </article>
@@ -893,19 +1220,19 @@
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Maria Camila Osorio Serrano</h4>
+                            <h4 style="margin: 0; color: white;">Brandon Nakashima</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Janice Tjen</h4>
+                            <h4 style="margin: 0; color: white;">Patrick Kypson</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
@@ -913,67 +1240,38 @@
 
                       <div>
                         <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Maria Camila Osorio Serrano</div>
+                        <div class="winner">Brandon Nakashima</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            92%
+                            81%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Maria Camila Osorio Serrano possesses superior WTA tour experience and a significantly higher career-level despite her current unranked status."</p>
-                      </div>
-                    </div>
-                  </article>
-                
-                  <article class="match-card">
-                    <div class="match-inner">
-                      <div>
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Emiliana Arango</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
-
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Anastasia Potapova</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Anastasia Potapova</div>
-                        <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-high">
-                            91%
-                          </span>
-                        </small>
-                        <p class="reasoning-text">"Potapova's superior tour experience and aggressive hard-court game provide a distinct advantage over Arango's consistent but less potent style."</p>
+                        <p class="reasoning-text">"Nakashima's established ATP Tour experience and higher proven ceiling make him the clear favorite over Kypson."</p>
                       </div>
                     </div>
                   </article>
                 
               </div>
-
             
-              <h3 style="border-bottom: 1px solid #374151; padding-bottom: 10px; margin-top: 30px; color: white;">
-                ATX Open - Austin
-                <span style="float: right; font-size: 0.7em; color: #9ca3af;">
-                  Court: Hard
-                </span>
-              </h3>
+          </div>
+        </details>
+      
+    
+      
+        <details open>
+          <summary style="color: #4ade80; font-size: 1.8em; font-weight: 800; margin-top: 14px; border-bottom: 2px solid #4ade80;">
+            WTA Tour
+          </summary>
 
-              <!-- ✅ single-column stack of cards -->
+          <div style="padding-top: 10px;">
+            
+              <div class="tourney-header">
+                <h3>
+                  <span>ATX Open - Austin</span>
+                  <span class="tourney-court">Court: Hard</span>
+                </h3>
+              </div>
+
               <div class="match-list">
                 
                   <article class="match-card">
@@ -989,7 +1287,7 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
@@ -1006,11 +1304,11 @@
                         <label style="color: #9ca3af;">Predicted Winner</label>
                         <div class="winner">Ashlyn Krueger</div>
                         <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-high">
-                            88%
+                          <span class="confidence-med">
+                            73%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Krueger's recent form and decisive head-to-head victory make her the clear favorite on hard court."</p>
+                        <p class="reasoning-text">"Ashlyn Krueger's current match rhythm and powerful game provide a crucial edge against Caty McNally returning from injury."</p>
                       </div>
                     </div>
                   </article>
@@ -1018,18 +1316,6 @@
                   <article class="match-card">
                     <div class="match-inner">
                       <div>
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Petra Marcinko</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
-
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
@@ -1039,17 +1325,29 @@
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Petra Marcinko</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
                       </div>
 
                       <div>
                         <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Kimberly Birrell</div>
+                        <div class="winner">Petra Marcinko</div>
                         <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-high">
-                            81%
+                          <span class="confidence-med">
+                            71%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Birrell's recent Australian Open main draw qualification and greater tour experience give her a slight edge over the promising Marcinko."</p>
+                        <p class="reasoning-text">"Despite both being unranked, Marcinko's recent main draw experience and higher junior pedigree give her a slight edge on hard court."</p>
                       </div>
                     </div>
                   </article>
@@ -1062,19 +1360,19 @@
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Venus Williams</h4>
+                            <h4 style="margin: 0; color: white;">Ajla Tomljanovic</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Ajla Tomljanovic</h4>
+                            <h4 style="margin: 0; color: white;">Venus Williams</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
@@ -1088,7 +1386,46 @@
                             78%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Ajla Tomljanovic's more developed match fitness and aggressive style should overcome Venus Williams' legendary experience."</p>
+                        <p class="reasoning-text">"Tomljanovic's comparative youth and recent competitive activity provide a significant edge over the legendary but significantly older Williams."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Dalma Galfi</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Bianca Vanessa Andreescu</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Bianca Vanessa Andreescu</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-high">
+                            87%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Bianca Andreescu's superior talent and experience, even while unranked, make her the clear favorite on hard court."</p>
                       </div>
                     </div>
                   </article>
@@ -1106,7 +1443,7 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
@@ -1121,13 +1458,13 @@
 
                       <div>
                         <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Claire Liu</div>
+                        <div class="winner">Kaja Juvan</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-med">
-                            68%
+                            61%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Claire Liu's slightly stronger recent hard court form and historical preference for the surface give her a marginal advantage."</p>
+                        <p class="reasoning-text">"Despite both players seeking form, Juvan holds a crucial head-to-head advantage on hard courts against Liu."</p>
                       </div>
                     </div>
                   </article>
@@ -1135,63 +1472,24 @@
                   <article class="match-card">
                     <div class="match-inner">
                       <div>
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Bianca Vanessa Andreescu</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
-
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Dalma Galfi</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Bianca Vanessa Andreescu</div>
-                        <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-high">
-                            77%
-                          </span>
-                        </small>
-                        <p class="reasoning-text">"Andreescu's elite talent and formidable hard-court game, when healthy, significantly outweigh any potential rust against a less accomplished opponent."</p>
-                      </div>
-                    </div>
-                  </article>
-                
-                  <article class="match-card">
-                    <div class="match-inner">
-                      <div>
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Anna Blinkova</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
-
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
                           
                           <div>
                             <h4 style="margin: 0; color: white;">Iva Jovic</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Anna Blinkova</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
@@ -1202,10 +1500,60 @@
                         <div class="winner">Anna Blinkova</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            97%
+                            92%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Blinkova's extensive professional experience and higher tour level provide a substantial advantage over the promising but less experienced Jovic on hard courts."</p>
+                        <p class="reasoning-text">"Anna Blinkova's established WTA experience and superior ranking make her a strong favorite against the developing junior Iva Jovic."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+              </div>
+            
+              <div class="tourney-header">
+                <h3>
+                  <span>Merida Open Akron - Merida</span>
+                  <span class="tourney-court">Court: Hard</span>
+                </h3>
+              </div>
+
+              <div class="match-list">
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Magda Linette</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Tatjana Maria</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Tatjana Maria</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-med">
+                            68%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Maria's disruptive slice-and-dice game, coupled with her recent hard-court victory over Linette, provides a tactical advantage in this close matchup."</p>
                       </div>
                     </div>
                   </article>
@@ -1218,19 +1566,19 @@
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Rebeka Masarova</h4>
+                            <h4 style="margin: 0; color: white;">Maria Camila Osorio Serrano</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Xinyu Wang</h4>
+                            <h4 style="margin: 0; color: white;">Janice Tjen</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
@@ -1238,28 +1586,26 @@
 
                       <div>
                         <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Xinyu Wang</div>
+                        <div class="winner">Maria Camila Osorio Serrano</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            81%
+                            96%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Xinyu Wang's superior hard court consistency and recent form give her a decisive edge."</p>
+                        <p class="reasoning-text">"Despite her current unranked status, Osorio Serrano's proven WTA main tour pedigree gives her a decisive edge over the less experienced Tjen."</p>
                       </div>
                     </div>
                   </article>
                 
               </div>
-
             
-              <h3 style="border-bottom: 1px solid #374151; padding-bottom: 10px; margin-top: 30px; color: white;">
-                Megasaray Hotels Open 1 - Antalya
-                <span style="float: right; font-size: 0.7em; color: #9ca3af;">
-                  Court: Clay
-                </span>
-              </h3>
+              <div class="tourney-header">
+                <h3>
+                  <span>Megasaray Hotels Open 1 - Antalya</span>
+                  <span class="tourney-court">Court: Clay</span>
+                </h3>
+              </div>
 
-              <!-- ✅ single-column stack of cards -->
               <div class="match-list">
                 
                   <article class="match-card">
@@ -1275,7 +1621,7 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
@@ -1293,88 +1639,10 @@
                         <div class="winner">Leyre Romero Gormaz</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            94%
-                          </span>
-                        </small>
-                        <p class="reasoning-text">"Leyre Romero Gormaz's established professional pedigree and recent success on clay significantly outweigh Dalila Spiteri's record."</p>
-                      </div>
-                    </div>
-                  </article>
-                
-                  <article class="match-card">
-                    <div class="match-inner">
-                      <div>
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Laura Pigossi</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
-
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Iryna Shymanovich</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Laura Pigossi</div>
-                        <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-high">
                             78%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Laura Pigossi's superior clay-court prowess and recent strong performances on the surface give her a distinct advantage."</p>
-                      </div>
-                    </div>
-                  </article>
-                
-                  <article class="match-card">
-                    <div class="match-inner">
-                      <div>
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Nuria Brancaccio</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
-
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Ada Kumru</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Nuria Brancaccio</div>
-                        <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-high">
-                            94%
-                          </span>
-                        </small>
-                        <p class="reasoning-text">"Nuria Brancaccio's significant professional experience and clay court prowess give her a distinct advantage over the less seasoned Ada Kumru."</p>
+                        <p class="reasoning-text">"Leyre Romero Gormaz, as a Spanish player, holds a distinct inherent advantage on a clay surface due to her national tennis development."</p>
                       </div>
                     </div>
                   </article>
@@ -1392,7 +1660,7 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
@@ -1410,10 +1678,10 @@
                         <div class="winner">Veronika Erjavec</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            94%
+                            97%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Veronika Erjavec's significantly more extensive professional experience and proven performance on clay make her the strong favorite."</p>
+                        <p class="reasoning-text">"Veronika Erjavec's established professional experience and consistent success on clay provide a clear advantage over a less seasoned opponent."</p>
                       </div>
                     </div>
                   </article>
@@ -1426,19 +1694,136 @@
                             <div class="placeholder-img">👤</div>
                           
                           <div>
-                            <h4 style="margin: 0; color: white;">Guiomar Zuleta De Reales</h4>
+                            <h4 style="margin: 0; color: white;">Iryna Shymanovich</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
                             <div class="placeholder-img">👤</div>
                           
                           <div>
+                            <h4 style="margin: 0; color: white;">Laura Pigossi</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Laura Pigossi</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-high">
+                            78%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Laura Pigossi's extensive experience and proven clay-court prowess make her the favorite against the unranked Iryna Shymanovich."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Nuria Brancaccio</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Ada Kumru</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Nuria Brancaccio</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-high">
+                            78%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Nuria Brancaccio's greater experience and more established presence on clay courts give her a clear advantage over the less seasoned Ada Kumru."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Anastasia Zolotareva</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Julia Riera</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style="color: #9ca3af;">Predicted Winner</label>
+                        <div class="winner">Julia Riera</div>
+                        <small style="color: #9ca3af;">Confidence:
+                          <span class="confidence-high">
+                            93%
+                          </span>
+                        </small>
+                        <p class="reasoning-text">"Julia Riera's extensive experience and proven success on clay courts give her a significant advantage over Zolotareva."</p>
+                      </div>
+                    </div>
+                  </article>
+                
+                  <article class="match-card">
+                    <div class="match-inner">
+                      <div>
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
                             <h4 style="margin: 0; color: white;">Mayar Sherif</h4>
+                            <small style="color: #9ca3af;">Rank: UR</small>
+                          </div>
+                        </div>
+
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+
+                        <div class="player-row">
+                          
+                            <div class="placeholder-img">👤</div>
+                          
+                          <div>
+                            <h4 style="margin: 0; color: white;">Guiomar Zuleta De Reales</h4>
                             <small style="color: #9ca3af;">Rank: UR</small>
                           </div>
                         </div>
@@ -1449,10 +1834,10 @@
                         <div class="winner">Mayar Sherif</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            98%
+                            93%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Mayar Sherif is a highly experienced former top-ranked clay-court specialist facing an unranked opponent with no significant professional history."</p>
+                        <p class="reasoning-text">"Mayar Sherif's superior clay-court pedigree and extensive experience will likely overcome any initial rust from her injury layoff."</p>
                       </div>
                     </div>
                   </article>
@@ -1470,7 +1855,7 @@
                           </div>
                         </div>
 
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
 
                         <div class="player-row">
                           
@@ -1488,55 +1873,15 @@
                         <div class="winner">Katarzyna Kawa</div>
                         <small style="color: #9ca3af;">Confidence:
                           <span class="confidence-high">
-                            87%
+                            81%
                           </span>
                         </small>
-                        <p class="reasoning-text">"Kawa's superior clay court pedigree and recent strong results on the surface give her a distinct advantage."</p>
-                      </div>
-                    </div>
-                  </article>
-                
-                  <article class="match-card">
-                    <div class="match-inner">
-                      <div>
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Julia Riera</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-
-                        <div style="margin-left: 32px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
-
-                        <div class="player-row">
-                          
-                            <div class="placeholder-img">👤</div>
-                          
-                          <div>
-                            <h4 style="margin: 0; color: white;">Anastasia Zolotareva</h4>
-                            <small style="color: #9ca3af;">Rank: UR</small>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">Julia Riera</div>
-                        <small style="color: #9ca3af;">Confidence:
-                          <span class="confidence-high">
-                            88%
-                          </span>
-                        </small>
-                        <p class="reasoning-text">"Julia Riera's established clay court prowess gives her a distinct advantage in this opening round."</p>
+                        <p class="reasoning-text">"Kawa's established clay court prowess and recent strong performance on the surface make her the favorite against Uchijima's hard-court-centric form."</p>
                       </div>
                     </div>
                   </article>
                 
               </div>
-
             
           </div>
         </details>
