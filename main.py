@@ -2,6 +2,7 @@ import os
 import requests
 import json
 import datetime
+import time
 from urllib.parse import quote_plus
 from google import genai
 from jinja2 import Environment, FileSystemLoader
@@ -15,6 +16,9 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 DEBUG_DUMPS = os.environ.get("DEBUG_DUMPS", "0") == "1"
 MAX_MATCHES_PER_TOUR = int(os.environ.get("MAX_MATCHES_PER_TOUR", "2"))  # design mode default
 
+# Design mode optimizations: keep API calls minimal to avoid 429
+DESIGN_MODE = os.environ.get("DESIGN_MODE", "1") == "1"
+
 if not RAPID_API_KEY:
     raise RuntimeError("Missing RAPID_API_KEY env var")
 if not GEMINI_API_KEY:
@@ -26,6 +30,9 @@ RAPID_HOST = "tennis-api-atp-wta-itf.p.rapidapi.com"
 BASE_URL = f"https://{RAPID_HOST}"
 
 rank_cache = {}
+CACHE_DIR = "cache"
+CACHE_FILE = os.path.join(CACHE_DIR, "matches.json")
+
 
 # =========================
 # HELPERS
@@ -74,46 +81,71 @@ def extract_rank_from_player_or_match(player_data, match_data, key_prefix):
     return None
 
 
-def try_fetch_json(url, headers, params=None, timeout=25):
+def safe_mkdir(path):
     try:
-        r = requests.get(url, headers=headers, params=params, timeout=timeout)
-        if r.status_code != 200:
-            print(f"HTTP {r.status_code} for {url} params={params}")
-            return None
-        return r.json()
+        os.makedirs(path, exist_ok=True)
+    except Exception:
+        pass
+
+
+def load_cached_matches():
+    try:
+        with open(CACHE_FILE, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        if isinstance(payload, dict) and "ATP" in payload and "WTA" in payload:
+            return payload
+    except Exception:
+        return None
+    return None
+
+
+def save_cached_matches(matches_dict):
+    safe_mkdir(CACHE_DIR)
+    try:
+        with open(CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(matches_dict, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print(f"Request failed: {e} url={url}")
-        return None
+        print(f"Cache write failed: {e}")
 
 
-def fetch_player_rank_from_api(tour, player_id, headers):
-    if not player_id:
-        return None
-    if player_id in rank_cache:
-        return rank_cache[player_id]
+def try_fetch_json_with_backoff(url, headers, params=None, timeout=25, max_retries=5):
+    """
+    Handles 429 by waiting (Retry-After if present) with exponential backoff.
+    """
+    for attempt in range(max_retries):
+        try:
+            r = requests.get(url, headers=headers, params=params, timeout=timeout)
+        except Exception as e:
+            print(f"Request failed: {e} url={url}")
+            return None
 
-    candidate_urls = [
-        f"{BASE_URL}/tennis/v2/{tour}/player/{player_id}",
-        f"{BASE_URL}/tennis/v2/{tour}/players/{player_id}",
-        f"{BASE_URL}/tennis/v2/{tour}/player/profile/{player_id}",
-        f"{BASE_URL}/tennis/v2/player/{player_id}",
-        f"{BASE_URL}/tennis/v2/players/{player_id}",
-    ]
+        if r.status_code == 200:
+            try:
+                return r.json()
+            except Exception as e:
+                print(f"JSON parse failed: {e}")
+                return None
 
-    rank = None
-    for url in candidate_urls:
-        payload = try_fetch_json(url, headers=headers)
-        if not payload:
+        if r.status_code == 429:
+            retry_after = r.headers.get("Retry-After")
+            if retry_after:
+                try:
+                    wait_s = int(retry_after)
+                except Exception:
+                    wait_s = 2 ** attempt
+            else:
+                wait_s = min(2 ** attempt, 20)
+
+            print(f"HTTP 429 (rate limited). Waiting {wait_s}s then retrying... url={url}")
+            time.sleep(wait_s)
             continue
-        data = payload.get("data", payload)
-        if isinstance(data, dict) and "player" in data and isinstance(data["player"], dict):
-            data = data["player"]
-        rank = extract_rank_from_player_or_match(data if isinstance(data, dict) else {}, {}, "")
-        if rank is not None:
-            break
 
-    rank_cache[player_id] = rank
-    return rank
+        # Other errors: log and stop
+        print(f"HTTP {r.status_code} for {url} params={params}")
+        return None
+
+    print(f"Exceeded retries for {url}")
+    return None
 
 
 def extract_surface(tourn, match_obj):
@@ -164,7 +196,6 @@ def normalize_image_url(raw, player_name: str) -> str:
         return avatar_fallback_url(player_name)
     if not (url.startswith("https://") or url.startswith("http://")):
         return avatar_fallback_url(player_name)
-
     return url
 
 
@@ -206,30 +237,39 @@ Use exactly these keys:
 
 
 # =========================
-# FETCH MATCHES (STRICT + RELAXED)
+# FETCH MATCHES
 # =========================
-def get_matches(relaxed: bool = False):
+def get_matches():
     """
-    relaxed=False: your normal strict filtering (no challenger/itf/etc)
-    relaxed=True: keep more so the page never goes empty while designing
+    In DESIGN_MODE:
+      - only fetch TODAY (UTC)
+      - only page 1
+    Outside design mode:
+      - fetch yesterday/today/tomorrow + paginate
+    If rate-limited / empty: fall back to last cached matches.
     """
     utc_now = datetime.datetime.utcnow()
-    date_list = [
-        (utc_now - datetime.timedelta(days=1)).strftime("%Y-%m-%d"),
-        utc_now.strftime("%Y-%m-%d"),
-        (utc_now + datetime.timedelta(days=1)).strftime("%Y-%m-%d"),
-    ]
+
+    if DESIGN_MODE:
+        date_list = [utc_now.strftime("%Y-%m-%d")]
+        max_pages = 1
+    else:
+        date_list = [
+            (utc_now - datetime.timedelta(days=1)).strftime("%Y-%m-%d"),
+            utc_now.strftime("%Y-%m-%d"),
+            (utc_now + datetime.timedelta(days=1)).strftime("%Y-%m-%d"),
+        ]
+        max_pages = 10
 
     headers = {"X-RapidAPI-Key": RAPID_API_KEY, "X-RapidAPI-Host": RAPID_HOST}
     all_matches = {"ATP": {}, "WTA": {}}
     seen_keys = set()
 
-    strict_exclusions = [
+    # In design mode, keep filtering lighter so we reliably get something
+    exclusions = ["doubles", "exhibition"] if DESIGN_MODE else [
         "challenger", "itf", "doubles", "exhibition",
         "m15", "m25", "w15", "w35", "w50", "w75", "w100", "utr"
     ]
-    relaxed_exclusions = ["doubles", "exhibition"]  # still block these
-    exclusions = relaxed_exclusions if relaxed else strict_exclusions
 
     def add_match(tour_key, tourney_name, surface, match_obj):
         if tourney_name not in all_matches[tour_key]:
@@ -241,28 +281,32 @@ def get_matches(relaxed: bool = False):
         all_matches[tour_key][tourney_name]["matches"].append(match_obj)
 
     dumped_any = False
+    total_raw_seen = 0
+    total_kept = 0
 
     for tour in ("atp", "wta"):
         tour_key = tour.upper()
 
         for day in date_list:
             page = 1
-            while True:
+            while page <= max_pages:
                 url = f"{BASE_URL}/tennis/v2/{tour}/fixtures/{day}"
-                querystring = {
+                params = {
                     "include": "tournament,tournament.court,player1,player2",
                     "pageSize": 100,
                     "page": page,
                     "pageNumber": page,
                 }
 
-                data = try_fetch_json(url, headers=headers, params=querystring)
+                data = try_fetch_json_with_backoff(url, headers=headers, params=params)
                 if not data:
                     break
 
                 raw_matches = data.get("data", []) or []
                 if not raw_matches:
                     break
+
+                total_raw_seen += len(raw_matches)
 
                 for m in raw_matches:
                     tourn = m.get("tournament", {}) or {}
@@ -300,16 +344,9 @@ def get_matches(relaxed: bool = False):
                         continue
                     seen_keys.add(dedupe_key)
 
-                    p1_id = p1.get("id") or p1.get("playerId") or deep_get(p1, ["player", "id"])
-                    p2_id = p2.get("id") or p2.get("playerId") or deep_get(p2, ["player", "id"])
-
+                    # ranks (best-effort; skip extra API calls in DESIGN_MODE)
                     p1_rank = extract_rank_from_player_or_match(p1, m, "player1")
                     p2_rank = extract_rank_from_player_or_match(p2, m, "player2")
-
-                    if p1_rank is None:
-                        p1_rank = fetch_player_rank_from_api(tour, str(p1_id) if p1_id else None, headers)
-                    if p2_rank is None:
-                        p2_rank = fetch_player_rank_from_api(tour, str(p2_id) if p2_id else None, headers)
 
                     surface = extract_surface(tourn, m)
 
@@ -338,19 +375,33 @@ def get_matches(relaxed: bool = False):
                     }
 
                     add_match(tour_key, tourney_name, surface, match_obj)
+                    total_kept += 1
 
-                if len(raw_matches) < 100:
+                # In DESIGN_MODE we only do page 1; outside we keep going until < pageSize
+                if len(raw_matches) < 100 or DESIGN_MODE:
                     break
 
                 page += 1
-                if page > 10:
-                    break
 
     # Sort inside tournaments
     for tour_key in all_matches:
         for tourney_name in all_matches[tour_key]:
             all_matches[tour_key][tourney_name]["matches"].sort(key=lambda x: x.get("best_rank", 9999))
 
+    print(f"[FETCH] raw seen: {total_raw_seen}, kept: {total_kept}, design_mode={DESIGN_MODE}")
+
+    # Cache fallback: if kept==0, use last good cache
+    if total_kept == 0:
+        cached = load_cached_matches()
+        if cached:
+            print("[CACHE] Using last-known-good cache due to empty fetch (likely 429).")
+            return cached
+        else:
+            print("[CACHE] No cache available.")
+            return all_matches
+
+    # Save successful fetch
+    save_cached_matches(all_matches)
     return all_matches
 
 
@@ -364,7 +415,6 @@ def count_matches(matches_dict):
 
 def limit_matches_for_design(matches_dict, max_per_tour=2):
     limited = {"ATP": {}, "WTA": {}}
-
     for tour_key in ("ATP", "WTA"):
         remaining = max_per_tour
         if remaining <= 0:
@@ -386,29 +436,19 @@ def limit_matches_for_design(matches_dict, max_per_tour=2):
                     "surface": tourney_data.get("surface", "Unknown"),
                     "matches": kept
                 }
-
     return limited
 
 
 def main():
-    # 1) Try strict
-    matches_dict = get_matches(relaxed=False)
-    strict_total = count_matches(matches_dict)
-    print(f"[STRICT] total matches after filtering: {strict_total}")
+    matches_dict = get_matches()
+    total = count_matches(matches_dict)
+    print(f"[TOTAL] matches available before limit: {total}")
 
-    # 2) If strict gave us nothing, retry relaxed so the site never renders blank
-    if strict_total == 0:
-        matches_dict = get_matches(relaxed=True)
-        relaxed_total = count_matches(matches_dict)
-        print(f"[RELAXED] total matches after filtering: {relaxed_total}")
-
-    # 3) Design mode cap
     matches_dict = limit_matches_for_design(matches_dict, MAX_MATCHES_PER_TOUR)
-
-    # 4) Only run AI on what we’re displaying
     display_total = count_matches(matches_dict)
     print(f"[DISPLAY] predicting for {display_total} matches (MAX_MATCHES_PER_TOUR={MAX_MATCHES_PER_TOUR})")
 
+    # Only run AI on displayed matches
     for tour in matches_dict:
         for tourney in matches_dict[tour]:
             for match in matches_dict[tour][tourney]["matches"]:
