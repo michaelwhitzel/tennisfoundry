@@ -2,7 +2,7 @@ name: Daily Tennis Update
 
 on:
   schedule:
-    - cron: '0 8 * * *' # Runs every day at 8:00 AM UTC
+    - cron: '0 8 * * *'
   workflow_dispatch:
 
 permissions:
@@ -27,11 +27,13 @@ jobs:
         env:
           RAPID_API_KEY: ${{ secrets.RAPID_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          DEBUG_DUMPS: "0" # set to "1" only when you want debug JSON files generated
+          DEBUG_DUMPS: "0"
+          DESIGN_MODE: "1"
+          MAX_MATCHES_PER_TOUR: "2"
         run: python main.py
 
       - name: Publish to GitHub
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Daily AI Update"
-          file_pattern: index.html
+          file_pattern: index.html cache/matches.json
