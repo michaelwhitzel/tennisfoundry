@@ -2,6 +2,7 @@ import os
 import requests
 import json
 import datetime
+from urllib.parse import quote_plus
 from google import genai
 from jinja2 import Environment, FileSystemLoader
 
@@ -10,7 +11,11 @@ from jinja2 import Environment, FileSystemLoader
 # =========================
 RAPID_API_KEY = os.environ.get("RAPID_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
 DEBUG_DUMPS = os.environ.get("DEBUG_DUMPS", "0") == "1"
+
+# During design: limit to 2 ATP + 2 WTA total matches
+MAX_MATCHES_PER_TOUR = int(os.environ.get("MAX_MATCHES_PER_TOUR", "2"))
 
 if not RAPID_API_KEY:
     raise RuntimeError("Missing RAPID_API_KEY env var")
@@ -22,9 +27,7 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 RAPID_HOST = "tennis-api-atp-wta-itf.p.rapidapi.com"
 BASE_URL = f"https://{RAPID_HOST}"
 
-# Cache for ranks during a single run
 rank_cache = {}
-
 
 # =========================
 # HELPERS
@@ -49,15 +52,10 @@ def normalize_rank(value):
 
 
 def extract_rank_from_player_or_match(player_data, match_data, key_prefix):
-    """
-    Try many common ranking structures. Returns int rank or None.
-    """
     candidates = [
-        # direct fields
         player_data.get("ranking"),
         player_data.get("rank"),
 
-        # nested common shapes
         deep_get(player_data, ["ranking", "rank"]),
         deep_get(player_data, ["ranking", "position"]),
         deep_get(player_data, ["rankings", "singles", "rank"]),
@@ -67,7 +65,6 @@ def extract_rank_from_player_or_match(player_data, match_data, key_prefix):
         deep_get(player_data, ["stats", "ranking"]),
         deep_get(player_data, ["stats", "rank"]),
 
-        # fixture-level fallbacks
         match_data.get(f"{key_prefix}Rank"),
         match_data.get(f"{key_prefix}_rank"),
         deep_get(match_data, [key_prefix, "ranking"]),
@@ -79,7 +76,6 @@ def extract_rank_from_player_or_match(player_data, match_data, key_prefix):
         r = normalize_rank(c)
         if r is not None:
             return r
-
     return None
 
 
@@ -96,8 +92,7 @@ def try_fetch_json(url, headers, params=None, timeout=20):
 def fetch_player_rank_from_api(tour, player_id, headers):
     """
     If fixtures don't include rank, try to fetch player detail and parse it.
-    This tries multiple endpoint patterns and fails gracefully.
-    Returns int rank or None.
+    Tries multiple endpoint patterns and fails gracefully.
     """
     if not player_id:
         return None
@@ -126,19 +121,15 @@ def fetch_player_rank_from_api(tour, player_id, headers):
         if rank is not None:
             break
 
-    rank_cache[player_id] = rank  # cache miss too (None)
+    rank_cache[player_id] = rank
     return rank
 
 
 def extract_surface(tourn, match_obj):
-    """
-    Try multiple likely shapes for court/surface.
-    """
     surface = (
         tourn.get("surface")
         or deep_get(tourn, ["court", "surface"])
         or deep_get(tourn, ["court", "name"])
-        or deep_get(tourn, ["tournament", "surface"])
         or match_obj.get("surface")
         or deep_get(match_obj, ["court", "surface"])
         or deep_get(match_obj, ["court", "name"])
@@ -150,7 +141,6 @@ def extract_surface(tourn, match_obj):
     if not surface:
         surface = "Unknown"
 
-    # Normalize common variants a bit
     s = str(surface).strip()
     if s.lower() in ("hardcourt", "hard court"):
         return "Hard"
@@ -159,6 +149,52 @@ def extract_surface(tourn, match_obj):
     if s.lower() in ("grasscourt", "grass court"):
         return "Grass"
     return s
+
+
+def avatar_fallback_url(player_name: str) -> str:
+    """
+    Guaranteed avatar image (initials). Always works on GitHub Pages.
+    """
+    # ui-avatars is a simple initials generator. Encode name safely.
+    name_q = quote_plus(player_name.strip() if player_name else "Player")
+    # Dark-friendly palette
+    return f"https://ui-avatars.com/api/?name={name_q}&background=111827&color=E5E7EB&bold=true&size=128&format=png"
+
+
+def normalize_image_url(raw, player_name: str) -> str:
+    """
+    Tries to produce a usable https URL.
+    If missing/bad, returns initials avatar.
+    """
+    url = ""
+
+    # Some APIs return dicts like {"url": "..."} or {"path": "..."}
+    if isinstance(raw, dict):
+        url = raw.get("url") or raw.get("image") or raw.get("path") or raw.get("photo") or ""
+    elif isinstance(raw, str):
+        url = raw.strip()
+
+    if not url:
+        return avatar_fallback_url(player_name)
+
+    # protocol-relative //example.com/img.jpg
+    if url.startswith("//"):
+        url = "https:" + url
+
+    # force https when possible
+    if url.startswith("http://"):
+        url = "https://" + url[len("http://"):]
+
+    # relative path "/images/.."
+    # We don't know the correct host reliably, so treat as unusable and fallback
+    if url.startswith("/"):
+        return avatar_fallback_url(player_name)
+
+    # If it’s not http(s), fallback
+    if not (url.startswith("https://") or url.startswith("http://")):
+        return avatar_fallback_url(player_name)
+
+    return url
 
 
 def get_prediction(match):
@@ -181,7 +217,7 @@ Predict the winner.
 - Calculate a highly specific and unique confidence integer between 50 and 99. Do not default to 85.
 - Keep the reasoning to exactly one short, punchy sentence.
 
-Output ONLY valid JSON with no markdown formatting. Do not wrap in ```json.
+Output ONLY valid JSON with no markdown formatting.
 Use exactly these keys:
 {{"winner": "Player Name", "confidence": <insert unique integer>, "reasoning": "One short sentence here."}}
 """.strip()
@@ -199,16 +235,9 @@ Use exactly these keys:
 
 
 # =========================
-# CORE: MATCH FETCHING (FIXES MISSING MATCHES)
+# FETCH MATCHES
 # =========================
 def get_matches():
-    """
-    Fixes missing matches by:
-    - fetching yesterday, today, tomorrow (UTC) to avoid UTC midnight cutoff
-    - paginating (page/pageNumber) with safety cap
-    - deduping matches across days/pages
-    - storing tournament-level metadata: {surface, matches[]}
-    """
     utc_now = datetime.datetime.utcnow()
     date_list = [
         (utc_now - datetime.timedelta(days=1)).strftime("%Y-%m-%d"),
@@ -233,7 +262,6 @@ def get_matches():
         if tourney_name not in all_matches[tour_key]:
             all_matches[tour_key][tourney_name] = {"surface": surface, "matches": []}
 
-        # Prefer known surface over Unknown
         if (all_matches[tour_key][tourney_name]["surface"] in ("Unknown", "", None)) and (surface not in ("Unknown", "", None)):
             all_matches[tour_key][tourney_name]["surface"] = surface
 
@@ -251,8 +279,8 @@ def get_matches():
                 querystring = {
                     "include": "tournament,tournament.court,player1,player2",
                     "pageSize": 100,
-                    "page": page,        # some APIs use this
-                    "pageNumber": page,  # some APIs use this instead
+                    "page": page,
+                    "pageNumber": page,
                 }
 
                 try:
@@ -278,11 +306,9 @@ def get_matches():
                         p1_name = p1.get("name", "Player 1")
                         p2_name = p2.get("name", "Player 2")
 
-                        # remove doubles teams if they leak through
                         if "/" in p1_name or "/" in p2_name:
                             continue
 
-                        # optional debug dumps (only once per run)
                         if DEBUG_DUMPS and not dumped_any:
                             try:
                                 with open("debug_match.json", "w") as f:
@@ -296,35 +322,32 @@ def get_matches():
                             except Exception as e:
                                 print(f"DEBUG dump failed: {e}")
 
-                        # Deduplicate across days/pages
                         match_id = m.get("id") or m.get("fixtureId") or m.get("matchId")
                         dedupe_key = match_id or f"{tourney_name}|{p1_name}|{p2_name}|{day}"
                         if dedupe_key in seen_keys:
                             continue
                         seen_keys.add(dedupe_key)
 
-                        # IDs (for possible rank lookup)
                         p1_id = p1.get("id") or p1.get("playerId") or deep_get(p1, ["player", "id"])
                         p2_id = p2.get("id") or p2.get("playerId") or deep_get(p2, ["player", "id"])
 
-                        # Rank extraction (robust)
                         p1_rank = extract_rank_from_player_or_match(p1, m, "player1")
                         p2_rank = extract_rank_from_player_or_match(p2, m, "player2")
 
-                        # If still missing, try player endpoint lookup (cached)
                         if p1_rank is None:
                             p1_rank = fetch_player_rank_from_api(tour, str(p1_id) if p1_id else None, headers)
                         if p2_rank is None:
                             p2_rank = fetch_player_rank_from_api(tour, str(p2_id) if p2_id else None, headers)
 
-                        # Images
-                        p1_image = p1.get("image") or p1.get("photo") or p1.get("picture") or ""
-                        p2_image = p2.get("image") or p2.get("photo") or p2.get("picture") or ""
-
-                        # Surface
                         surface = extract_surface(tourn, m)
 
-                        # Display + sorting helpers
+                        # Images: pull + normalize + always fallback
+                        raw_p1_img = p1.get("image") or p1.get("photo") or p1.get("picture") or deep_get(p1, ["images", "headshot"]) or ""
+                        raw_p2_img = p2.get("image") or p2.get("photo") or p2.get("picture") or deep_get(p2, ["images", "headshot"]) or ""
+
+                        p1_image = normalize_image_url(raw_p1_img, p1_name)
+                        p2_image = normalize_image_url(raw_p2_img, p2_name)
+
                         p1_rank_display = p1_rank if p1_rank is not None else "UR"
                         p2_rank_display = p2_rank if p2_rank is not None else "UR"
                         best_rank = min(p1_rank or 9999, p2_rank or 9999)
@@ -338,26 +361,24 @@ def get_matches():
                             "p2_rank": p2_rank_display,
                             "p1_image": p1_image,
                             "p2_image": p2_image,
-                            "p1_id": p1_id,
-                            "p2_id": p2_id,
+                            "p1_avatar": avatar_fallback_url(p1_name),
+                            "p2_avatar": avatar_fallback_url(p2_name),
                             "best_rank": best_rank,
                         }
 
                         add_match(tour_key, tourney_name, surface, match_obj)
 
-                    # If fewer than pageSize, likely last page
                     if len(raw_matches) < 100:
                         break
 
                     page += 1
-                    if page > 10:  # safety cap
+                    if page > 10:
                         break
 
                 except Exception as e:
                     print(f"Error fetching {tour.upper()} data for {day} page {page}: {e}")
                     break
 
-    # Sort matches by best_rank inside each tournament
     for tour_key in all_matches:
         for tourney_name in all_matches[tour_key]:
             all_matches[tour_key][tourney_name]["matches"].sort(key=lambda x: x.get("best_rank", 9999))
@@ -365,22 +386,47 @@ def get_matches():
     return all_matches
 
 
-# =========================
-# MAIN
-# =========================
+def limit_matches_for_design(matches_dict, max_per_tour=2):
+    limited = {"ATP": {}, "WTA": {}}
+
+    for tour_key in ("ATP", "WTA"):
+        remaining = max_per_tour
+        if remaining <= 0:
+            continue
+
+        for tourney_name, tourney_data in matches_dict.get(tour_key, {}).items():
+            if remaining <= 0:
+                break
+
+            kept_matches = []
+            for m in tourney_data.get("matches", []):
+                if remaining <= 0:
+                    break
+                kept_matches.append(m)
+                remaining -= 1
+
+            if kept_matches:
+                limited[tour_key][tourney_name] = {
+                    "surface": tourney_data.get("surface", "Unknown"),
+                    "matches": kept_matches
+                }
+
+    return limited
+
+
 def main():
     matches_dict = get_matches()
+    matches_dict = limit_matches_for_design(matches_dict, MAX_MATCHES_PER_TOUR)
 
     for tour in matches_dict:
         for tourney in matches_dict[tour]:
-            match_list = matches_dict[tour][tourney]["matches"]
-            for match in match_list:
+            for match in matches_dict[tour][tourney]["matches"]:
                 print(f"Analyzing {match.get('player1')} vs {match.get('player2')}...")
-                prediction = get_prediction(match)
-                match["prediction"] = prediction
+                match["prediction"] = get_prediction(match)
 
     env = Environment(loader=FileSystemLoader("templates"))
     template = env.get_template("index.html")
+
     html_output = template.render(
         matches=matches_dict,
         last_updated=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")
