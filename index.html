@@ -5,12 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TennisFoundry — Daily Predictions</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
-
   <style>
     :root {
       --bg: #0b1220;
-      --panel: rgba(255, 255, 255, 0.04);
-      --panel-2: rgba(255, 255, 255, 0.06);
       --border: rgba(255, 255, 255, 0.08);
       --text: #e5e7eb;
       --muted: rgba(229, 231, 235, 0.68);
@@ -19,16 +16,13 @@
       --shadow: 0 14px 40px rgba(0,0,0,0.45);
       --radius: 14px;
     }
-
     body {
       background: radial-gradient(1100px 700px at 20% -10%, rgba(34,197,94,0.18), transparent 55%),
                   radial-gradient(900px 650px at 90% 0%, rgba(96,165,250,0.18), transparent 50%),
                   var(--bg);
       color: var(--text);
     }
-
     .wrap { max-width: 1120px; margin: 0 auto; padding: 22px 18px 56px; }
-
     .topbar {
       display: flex; justify-content: space-between; align-items: center; gap: 16px;
       padding: 14px 16px;
@@ -39,7 +33,6 @@
       position: sticky; top: 12px; z-index: 10;
       backdrop-filter: blur(10px);
     }
-
     .brand { display: flex; align-items: center; gap: 12px; min-width: 240px; }
     .logo {
       width: 38px; height: 38px; border-radius: 12px;
@@ -48,9 +41,7 @@
     }
     .brand h1 { font-size: 1.05rem; margin: 0; letter-spacing: 0.3px; line-height: 1.1; }
     .brand small { display: block; color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
-
     .meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-
     .chip {
       border: 1px solid var(--border);
       background: rgba(255,255,255,0.04);
@@ -82,7 +73,6 @@
       border-bottom: 1px solid var(--border);
     }
     details > summary::-webkit-details-marker { display: none; }
-
     .tour-title { display: flex; align-items: baseline; gap: 12px; }
     .tour-title span { font-size: 1.15rem; font-weight: 850; letter-spacing: 0.3px; }
     .tour-title em { font-style: normal; color: var(--muted); font-size: 0.9rem; }
@@ -128,25 +118,19 @@
 
     .players { display: grid; gap: 10px; }
     .player { display: flex; align-items: center; gap: 12px; }
-
     .avatar {
       width: 54px; height: 54px; border-radius: 14px;
       border: 1px solid var(--border);
       background: rgba(255,255,255,0.04);
-      object-fit: cover;
-      flex: 0 0 auto;
+      object-fit: cover; flex: 0 0 auto;
     }
-
     .pname { margin: 0; font-weight: 850; font-size: 1rem; line-height: 1.05; letter-spacing: 0.2px; }
     .prank { margin: 2px 0 0; color: var(--muted); font-size: 0.82rem; }
-
     .vs { color: rgba(229,231,235,0.35); font-weight: 900; letter-spacing: 2px; font-size: 0.8rem; margin-left: 66px; margin-top: -4px; }
 
     .pick { border-top: 1px solid var(--border); padding-top: 12px; }
-
     .label { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.3px; text-transform: uppercase; margin-bottom: 6px; }
     .winner { font-size: 1.05rem; font-weight: 900; color: var(--brand-2); margin: 0; }
-
     .conf-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
     .badge {
       border-radius: 999px;
@@ -161,7 +145,6 @@
       color: var(--muted);
     }
     .badge strong { color: var(--text); }
-
     .meter {
       height: 8px; border-radius: 999px;
       background: rgba(255,255,255,0.08);
@@ -175,7 +158,6 @@
       background: linear-gradient(90deg, rgba(34,197,94,0.9), rgba(96,165,250,0.9));
       width: 0%;
     }
-
     .reason { margin-top: 10px; color: rgba(229,231,235,0.78); line-height: 1.5; font-size: 0.92rem; }
 
     .empty {
@@ -206,7 +188,7 @@
 
       <div class="meta">
         <span class="chip"><span class="dot"></span> Live build</span>
-        <span class="chip">Last updated: <strong style="color: var(--text); font-weight: 800;">2026-02-25 01:38 UTC</strong></span>
+        <span class="chip">Last updated: <strong style="color: var(--text); font-weight: 800;">2026-02-25 01:48 UTC</strong></span>
         <span class="chip">Design mode: <strong style="color: var(--text); font-weight: 800;">2 ATP + 2 WTA</strong></span>
       </div>
     </div>
@@ -214,7 +196,259 @@
     
     
       
+        
+        <details open>
+          <summary>
+            <div class="tour-title">
+              <span>ATP Predictions</span>
+              <em>Today’s featured matches</em>
+            </div>
+            <div class="chip" style="padding:6px 10px;">AI confidence + one-line edge</div>
+          </summary>
+
+          <div>
+            
+              <div class="tourney-header">
+                <div class="tourney-row">
+                  <h3 class="tourney-name">Lugano Challenger</h3>
+                  <span class="surface-pill">Surface: I.hard</span>
+                </div>
+              </div>
+
+              <div class="match-grid">
+                
+                  <article class="card">
+                    <div class="card-inner">
+                      <div class="players">
+                        <div class="player">
+                          <img class="avatar"
+                               src="https://ui-avatars.com/api/?name=Maxim+Mrva&background=111827&color=E5E7EB&bold=true&size=128&format=png"
+                               alt="Maxim Mrva"
+                               loading="lazy"
+                               referrerpolicy="no-referrer"
+                               onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=Maxim+Mrva&background=111827&color=E5E7EB&bold=true&size=128&format=png';" />
+                          <div>
+                            <p class="pname">Maxim Mrva</p>
+                            <p class="prank">Rank: UR</p>
+                          </div>
+                        </div>
+
+                        <div class="vs">VS</div>
+
+                        <div class="player">
+                          <img class="avatar"
+                               src="https://ui-avatars.com/api/?name=Michael+Mmoh&background=111827&color=E5E7EB&bold=true&size=128&format=png"
+                               alt="Michael Mmoh"
+                               loading="lazy"
+                               referrerpolicy="no-referrer"
+                               onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=Michael+Mmoh&background=111827&color=E5E7EB&bold=true&size=128&format=png';" />
+                          <div>
+                            <p class="pname">Michael Mmoh</p>
+                            <p class="prank">Rank: UR</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="pick">
+                        <div class="label">Model Pick</div>
+                        <p class="winner">Michael Mmoh</p>
+
+                        
+                        <div class="conf-row">
+                          <span class="badge">Confidence <strong>97%</strong></span>
+                          <div class="meter" aria-label="Confidence meter">
+                            <div class="bar" style="width: 97%;"></div>
+                          </div>
+                        </div>
+
+                        <div class="reason">“Michael Mmoh's extensive professional experience and higher career standard make him a strong favorite against the unranked Maxim Mrva.”</div>
+                      </div>
+
+                    </div>
+                  </article>
+                
+                  <article class="card">
+                    <div class="card-inner">
+                      <div class="players">
+                        <div class="player">
+                          <img class="avatar"
+                               src="https://ui-avatars.com/api/?name=Nicolai+Budkov+Kjaer&background=111827&color=E5E7EB&bold=true&size=128&format=png"
+                               alt="Nicolai Budkov Kjaer"
+                               loading="lazy"
+                               referrerpolicy="no-referrer"
+                               onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=Nicolai+Budkov+Kjaer&background=111827&color=E5E7EB&bold=true&size=128&format=png';" />
+                          <div>
+                            <p class="pname">Nicolai Budkov Kjaer</p>
+                            <p class="prank">Rank: UR</p>
+                          </div>
+                        </div>
+
+                        <div class="vs">VS</div>
+
+                        <div class="player">
+                          <img class="avatar"
+                               src="https://ui-avatars.com/api/?name=Petr+Nesterov&background=111827&color=E5E7EB&bold=true&size=128&format=png"
+                               alt="Petr Nesterov"
+                               loading="lazy"
+                               referrerpolicy="no-referrer"
+                               onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=Petr+Nesterov&background=111827&color=E5E7EB&bold=true&size=128&format=png';" />
+                          <div>
+                            <p class="pname">Petr Nesterov</p>
+                            <p class="prank">Rank: UR</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="pick">
+                        <div class="label">Model Pick</div>
+                        <p class="winner">Nicolai Budkov Kjaer</p>
+
+                        
+                        <div class="conf-row">
+                          <span class="badge">Confidence <strong>81%</strong></span>
+                          <div class="meter" aria-label="Confidence meter">
+                            <div class="bar" style="width: 81%;"></div>
+                          </div>
+                        </div>
+
+                        <div class="reason">“Nicolai Budkov Kjaer's surging junior form and aggressive game provide him the edge over Petr Nesterov on the quick indoor hard surface.”</div>
+                      </div>
+
+                    </div>
+                  </article>
+                
+              </div>
+            
+          </div>
+        </details>
+      
     
+      
+        
+        <details open>
+          <summary>
+            <div class="tour-title">
+              <span>WTA Predictions</span>
+              <em>Today’s featured matches</em>
+            </div>
+            <div class="chip" style="padding:6px 10px;">AI confidence + one-line edge</div>
+          </summary>
+
+          <div>
+            
+              <div class="tourney-header">
+                <div class="tourney-row">
+                  <h3 class="tourney-name">ATX Open - Austin</h3>
+                  <span class="surface-pill">Surface: Hard</span>
+                </div>
+              </div>
+
+              <div class="match-grid">
+                
+                  <article class="card">
+                    <div class="card-inner">
+                      <div class="players">
+                        <div class="player">
+                          <img class="avatar"
+                               src="https://ui-avatars.com/api/?name=Rebeka+Masarova&background=111827&color=E5E7EB&bold=true&size=128&format=png"
+                               alt="Rebeka Masarova"
+                               loading="lazy"
+                               referrerpolicy="no-referrer"
+                               onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=Rebeka+Masarova&background=111827&color=E5E7EB&bold=true&size=128&format=png';" />
+                          <div>
+                            <p class="pname">Rebeka Masarova</p>
+                            <p class="prank">Rank: UR</p>
+                          </div>
+                        </div>
+
+                        <div class="vs">VS</div>
+
+                        <div class="player">
+                          <img class="avatar"
+                               src="https://ui-avatars.com/api/?name=Whitney+Osuigwe&background=111827&color=E5E7EB&bold=true&size=128&format=png"
+                               alt="Whitney Osuigwe"
+                               loading="lazy"
+                               referrerpolicy="no-referrer"
+                               onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=Whitney+Osuigwe&background=111827&color=E5E7EB&bold=true&size=128&format=png';" />
+                          <div>
+                            <p class="pname">Whitney Osuigwe</p>
+                            <p class="prank">Rank: UR</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="pick">
+                        <div class="label">Model Pick</div>
+                        <p class="winner">Rebeka Masarova</p>
+
+                        
+                        <div class="conf-row">
+                          <span class="badge">Confidence <strong>78%</strong></span>
+                          <div class="meter" aria-label="Confidence meter">
+                            <div class="bar" style="width: 78%;"></div>
+                          </div>
+                        </div>
+
+                        <div class="reason">“Masarova's stronger hard-court pedigree and greater experience at the tour level give her a clear advantage.”</div>
+                      </div>
+
+                    </div>
+                  </article>
+                
+                  <article class="card">
+                    <div class="card-inner">
+                      <div class="players">
+                        <div class="player">
+                          <img class="avatar"
+                               src="https://ui-avatars.com/api/?name=Kamilla+Rakhimova&background=111827&color=E5E7EB&bold=true&size=128&format=png"
+                               alt="Kamilla Rakhimova"
+                               loading="lazy"
+                               referrerpolicy="no-referrer"
+                               onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=Kamilla+Rakhimova&background=111827&color=E5E7EB&bold=true&size=128&format=png';" />
+                          <div>
+                            <p class="pname">Kamilla Rakhimova</p>
+                            <p class="prank">Rank: UR</p>
+                          </div>
+                        </div>
+
+                        <div class="vs">VS</div>
+
+                        <div class="player">
+                          <img class="avatar"
+                               src="https://ui-avatars.com/api/?name=Oksana+Selekhmeteva&background=111827&color=E5E7EB&bold=true&size=128&format=png"
+                               alt="Oksana Selekhmeteva"
+                               loading="lazy"
+                               referrerpolicy="no-referrer"
+                               onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=Oksana+Selekhmeteva&background=111827&color=E5E7EB&bold=true&size=128&format=png';" />
+                          <div>
+                            <p class="pname">Oksana Selekhmeteva</p>
+                            <p class="prank">Rank: UR</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="pick">
+                        <div class="label">Model Pick</div>
+                        <p class="winner">Kamilla Rakhimova</p>
+
+                        
+                        <div class="conf-row">
+                          <span class="badge">Confidence <strong>78%</strong></span>
+                          <div class="meter" aria-label="Confidence meter">
+                            <div class="bar" style="width: 78%;"></div>
+                          </div>
+                        </div>
+
+                        <div class="reason">“Rakhimova's greater tour experience and consistent baseline game on hard courts give her a decisive edge over Selekhmeteva.”</div>
+                      </div>
+
+                    </div>
+                  </article>
+                
+              </div>
+            
+          </div>
+        </details>
       
     
 
@@ -222,8 +456,7 @@
       <div class="empty">
         <p style="margin:0 0 8px;"><strong>No matches found for the current build window.</strong></p>
         <p style="margin:0;">
-          This usually means the API returned fixtures but our filters removed them, or there are no scheduled fixtures in the UTC window.
-          Try a manual workflow run with <strong>DEBUG_DUMPS=1</strong> to inspect the raw payload.
+          This build was likely rate-limited (HTTP 429). We’ll automatically reuse the last successful cached match list when available.
         </p>
       </div>
     
