@@ -1,182 +1,443 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daily Tennis AI</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TennisFoundry — Daily Predictions</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+
   <style>
-    body { background-color: #111827; }
-    .main-container { max-width: 1100px; margin: 0 auto; padding: 20px; }
-
-    /* Gallery: 1 col on small screens, auto-fit 2+ cols on wide screens */
-    .match-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-      gap: 18px;
-      margin-top: 18px;
-      margin-bottom: 26px;
+    /* Pico theming via CSS variables (professional + consistent) */
+    :root {
+      --bg: #0b1220;
+      --panel: rgba(255, 255, 255, 0.04);
+      --panel-2: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e5e7eb;
+      --muted: rgba(229, 231, 235, 0.68);
+      --brand: #22c55e;      /* green */
+      --brand-2: #60a5fa;    /* blue */
+      --warning: #fbbf24;
+      --danger: #fb7185;
+      --shadow: 0 14px 40px rgba(0,0,0,0.45);
+      --radius: 14px;
     }
-    @media (max-width: 420px) {
-      .match-list { grid-template-columns: 1fr; }
+
+    body {
+      background: radial-gradient(1100px 700px at 20% -10%, rgba(34,197,94,0.18), transparent 55%),
+                  radial-gradient(900px 650px at 90% 0%, rgba(96,165,250,0.18), transparent 50%),
+                  var(--bg);
+      color: var(--text);
     }
 
-    .match-card {
-      padding: 20px;
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 22px 18px 56px;
+    }
+
+    /* Top bar */
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 12px;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 240px;
+    }
+    .logo {
+      width: 38px;
+      height: 38px;
       border-radius: 12px;
-      background: #1f2937;
-      color: white;
-      border-left: 4px solid #3b82f6;
-      box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+      background: linear-gradient(135deg, rgba(34,197,94,0.95), rgba(96,165,250,0.95));
+      box-shadow: 0 8px 22px rgba(34,197,94,0.15);
+    }
+    .brand h1 {
+      font-size: 1.05rem;
+      margin: 0;
+      letter-spacing: 0.3px;
+      line-height: 1.1;
+    }
+    .brand small {
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-top: 2px;
     }
 
-    /* Inside each card: stack by default (prevents squish) */
-    .match-inner {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
-      align-items: start;
-    }
-    /* If viewport is wide enough, allow 2 columns inside each card */
-    @media (min-width: 1100px) {
-      .match-inner {
-        grid-template-columns: 1.2fr 0.8fr;
-        gap: 18px;
-      }
+    .meta {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
-    .confidence-high { color: #4ade80; font-weight: bold; }
-    .confidence-med { color: #facc15; font-weight: bold; }
-    .winner { font-size: 1.25em; font-weight: 800; color: #60a5fa; }
+    .chip {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--brand);
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
+    }
 
-    .player-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
-    .player-img {
-      width: 70px; height: 70px;
-      border-radius: 50%;
-      object-fit: cover;
-      background: #374151;
-      flex: 0 0 auto;
+    /* Tour sections */
+    details {
+      margin-top: 18px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.02);
+      overflow: hidden;
     }
-    .placeholder-img {
-      width: 70px; height: 70px;
-      border-radius: 50%;
-      background: #374151;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 2.1em;
-      flex: 0 0 auto;
-    }
-    .reasoning-text { margin-top: 10px; color: #d1d5db; line-height: 1.45; }
 
     details > summary {
       list-style: none;
-      outline: none;
-      display: flex;
-      align-items: center;
-      padding: 15px 0;
       cursor: pointer;
+      padding: 18px 16px;
       user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
     }
     details > summary::-webkit-details-marker { display: none; }
-    details > summary::after {
-      content: ' ▼';
-      padding-left: 15px;
-      font-size: 0.7em;
-      transition: transform 0.2s;
+
+    .tour-title {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
     }
-    details[open] > summary::after { transform: rotate(180deg); }
+    .tour-title span {
+      font-size: 1.15rem;
+      font-weight: 850;
+      letter-spacing: 0.3px;
+    }
+    .tour-title em {
+      font-style: normal;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
 
     /* Sticky tournament header */
     .tourney-header {
       position: sticky;
-      top: 0;
-      z-index: 5;
-      background: #111827;
-      padding-top: 12px;
-      padding-bottom: 10px;
-      margin-top: 26px;
-      border-bottom: 1px solid #374151;
+      top: 82px; /* below topbar */
+      z-index: 6;
+      background: rgba(11,18,32,0.88);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
     }
-    .tourney-header h3 {
-      margin: 0;
-      color: white;
+    .tourney-row {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .tourney-name {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+    .tourney-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+    .surface-pill {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    /* Match grid */
+    .match-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 16px;
+      padding: 16px;
+    }
+    @media (max-width: 420px) {
+      .match-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Match card */
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+      overflow: hidden;
+      position: relative;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-left: 4px solid rgba(96,165,250,0.9);
+      pointer-events: none;
+    }
+
+    .card-inner {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      padding: 16px 16px 14px;
+    }
+
+    @media (min-width: 1100px) {
+      .card-inner { grid-template-columns: 1.25fr 0.75fr; gap: 16px; }
+    }
+
+    .players {
+      display: grid;
+      gap: 10px;
+    }
+
+    .player {
+      display: flex;
+      align-items: center;
       gap: 12px;
     }
-    .tourney-court {
-      font-size: 0.75em;
-      color: #9ca3af;
-      white-space: nowrap;
+
+    .avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      object-fit: cover;
+      flex: 0 0 auto;
+    }
+
+    .pname {
+      margin: 0;
+      font-weight: 850;
+      font-size: 1rem;
+      line-height: 1.05;
+      letter-spacing: 0.2px;
+    }
+    .prank {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .vs {
+      color: rgba(229,231,235,0.35);
+      font-weight: 900;
+      letter-spacing: 2px;
+      font-size: 0.8rem;
+      margin-left: 66px;
+      margin-top: -4px;
+    }
+
+    .pick {
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .winner {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: var(--brand-2);
+      margin: 0;
+    }
+
+    .conf-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      font-weight: 850;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+    }
+
+    .badge strong { color: var(--text); }
+
+    .badge.high { box-shadow: 0 0 0 3px rgba(34,197,94,0.12); }
+    .badge.med  { box-shadow: 0 0 0 3px rgba(251,191,36,0.12); }
+
+    .meter {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      flex: 1 1 160px;
+      min-width: 160px;
+    }
+    .bar {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(34,197,94,0.9), rgba(96,165,250,0.9));
+      width: 0%;
+    }
+
+    .reason {
+      margin-top: 10px;
+      color: rgba(229,231,235,0.78);
+      line-height: 1.5;
+      font-size: 0.92rem;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: rgba(229,231,235,0.55);
+      font-size: 0.8rem;
+      text-align: center;
     }
   </style>
 </head>
 
 <body>
-  <main class="main-container">
-    <h1 style="color: white;">🎾 Daily AI Tennis Predictions</h1>
-    <p style="color: #9ca3af;">Predictions powered by Gemini 2.5 Flash.</p>
-    <small style="color: #6b7280;">Last Updated: {{ last_updated }} UTC</small>
-    <hr style="border-color: #374151;">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>TennisFoundry</h1>
+          <small>Daily AI match predictions</small>
+        </div>
+      </div>
+
+      <div class="meta">
+        <span class="chip"><span class="dot"></span> Live build</span>
+        <span class="chip">Last updated: <strong style="color: var(--text); font-weight: 800;">{{ last_updated }} UTC</strong></span>
+        <span class="chip">Design mode: <strong style="color: var(--text); font-weight: 800;">2 ATP + 2 WTA</strong></span>
+      </div>
+    </div>
 
     {% for tour, tourneys in matches.items() %}
       {% if tourneys %}
         <details open>
-          <summary style="color: #4ade80; font-size: 1.8em; font-weight: 800; margin-top: 14px; border-bottom: 2px solid #4ade80;">
-            {{ tour }} Tour
+          <summary>
+            <div class="tour-title">
+              <span>{{ tour }} Predictions</span>
+              <em>Today’s featured matches</em>
+            </div>
+            <div class="tourney-meta">
+              <span class="chip" style="padding:6px 10px;">AI confidence + one-line edge</span>
+            </div>
           </summary>
 
-          <div style="padding-top: 10px;">
+          <div>
             {% for tourney_name, tourney_data in tourneys.items() %}
               <div class="tourney-header">
-                <h3>
-                  <span>{{ tourney_name }}</span>
-                  <span class="tourney-court">Court: {{ tourney_data.surface }}</span>
-                </h3>
+                <div class="tourney-row">
+                  <h3 class="tourney-name">{{ tourney_name }}</h3>
+                  <span class="surface-pill">Surface: {{ tourney_data.surface }}</span>
+                </div>
               </div>
 
-              <div class="match-list">
+              <div class="match-grid">
                 {% for match in tourney_data.matches %}
-                  <article class="match-card">
-                    <div class="match-inner">
-                      <div>
-                        <div class="player-row">
-                          {% if match.p1_image %}
-                            <img src="{{ match.p1_image }}" class="player-img" alt="Photo">
-                          {% else %}
-                            <div class="placeholder-img">👤</div>
-                          {% endif %}
+                  <article class="card">
+                    <div class="card-inner">
+
+                      <div class="players">
+                        <div class="player">
+                          <img class="avatar"
+                               src="{{ match.p1_image }}"
+                               alt="{{ match.player1 }}"
+                               loading="lazy"
+                               referrerpolicy="no-referrer"
+                               onerror="this.onerror=null;this.src='{{ match.p1_avatar }}';" />
                           <div>
-                            <h4 style="margin: 0; color: white;">{{ match.player1 }}</h4>
-                            <small style="color: #9ca3af;">Rank: {{ match.p1_rank }}</small>
+                            <p class="pname">{{ match.player1 }}</p>
+                            <p class="prank">Rank: {{ match.p1_rank }}</p>
                           </div>
                         </div>
 
-                        <div style="margin-left: 30px; color: #6b7280; font-size: 0.9em; font-weight: bold; margin-bottom: 10px;">VS</div>
+                        <div class="vs">VS</div>
 
-                        <div class="player-row">
-                          {% if match.p2_image %}
-                            <img src="{{ match.p2_image }}" class="player-img" alt="Photo">
-                          {% else %}
-                            <div class="placeholder-img">👤</div>
-                          {% endif %}
+                        <div class="player">
+                          <img class="avatar"
+                               src="{{ match.p2_image }}"
+                               alt="{{ match.player2 }}"
+                               loading="lazy"
+                               referrerpolicy="no-referrer"
+                               onerror="this.onerror=null;this.src='{{ match.p2_avatar }}';" />
                           <div>
-                            <h4 style="margin: 0; color: white;">{{ match.player2 }}</h4>
-                            <small style="color: #9ca3af;">Rank: {{ match.p2_rank }}</small>
+                            <p class="pname">{{ match.player2 }}</p>
+                            <p class="prank">Rank: {{ match.p2_rank }}</p>
                           </div>
                         </div>
                       </div>
 
-                      <div>
-                        <label style="color: #9ca3af;">Predicted Winner</label>
-                        <div class="winner">{{ match.prediction.winner }}</div>
-                        <small style="color: #9ca3af;">Confidence:
-                          <span class="{% if match.prediction.confidence > 75 %}confidence-high{% else %}confidence-med{% endif %}">
-                            {{ match.prediction.confidence }}%
+                      <div class="pick">
+                        <div class="label">Model Pick</div>
+                        <p class="winner">{{ match.prediction.winner }}</p>
+
+                        <div class="conf-row">
+                          {% set c = match.prediction.confidence %}
+                          <span class="badge {% if c > 75 %}high{% else %}med{% endif %}">
+                            Confidence <strong>{{ c }}%</strong>
                           </span>
-                        </small>
-                        <p class="reasoning-text">"{{ match.prediction.reasoning }}"</p>
+
+                          <div class="meter" aria-label="Confidence meter">
+                            <div class="bar" style="width: {{ c }}%;"></div>
+                          </div>
+                        </div>
+
+                        <div class="reason">“{{ match.prediction.reasoning }}”</div>
                       </div>
+
                     </div>
                   </article>
                 {% endfor %}
@@ -186,6 +447,10 @@
         </details>
       {% endif %}
     {% endfor %}
-  </main>
+
+    <div class="footer-note">
+      Predictions are informational and may be wrong. Always verify lineups/injuries before betting.
+    </div>
+  </div>
 </body>
 </html>
